@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skalekiano</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <meta name="description" content="Skalekiano — 128 General MIDI instruments on an 88-key piano in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f5f2ed;
+      --text: #2a2520;
+      --text-muted: #8a8279;
+      --border: #d4cfc7;
+      --border-hover: #b8b2a8;
+      --pill-bg: #fff;
+      --pill-bg-hover: #f9f7f4;
+      --pill-bg-active: #2a2520;
+      --pill-text-active: #f5f2ed;
+      --piano-bg: #1a1714;
+      --white-key-grad-top: #fefefe;
+      --white-key-grad-mid: #f9f7f4;
+      --white-key-grad-bot: #eae6df;
+      --white-key-active-top: #f0ede8;
+      --white-key-active-mid: #e8e4dc;
+      --white-key-active-bot: #ddd8cf;
+      --black-key-grad-top: #2a2520;
+      --black-key-grad-mid: #1a1714;
+      --black-key-grad-bot: #0f0d0b;
+      --black-key-active-top: #3a3530;
+      --black-key-active-mid: #2a2520;
+      --black-key-active-bot: #1a1714;
+      --black-key-active-bot: #1a1714;
+      --overlay-bg: rgba(0,0,0,0.4);
+      --modal-bg: #fff;
+      --white-key-width: 23px;
+      --white-key-height: 206px;
+      --black-key-width: 14px;
+      --black-key-height: 120px;
+    }
+
+    body.dark-mode {
+      --bg: #1a1a1a;
+      --text: #e8e6e3;
+      --text-muted: #a39e96;
+      --border: #4a453f;
+      --border-hover: #6a645d;
+      --pill-bg: #2a2520;
+      --pill-bg-hover: #3a3530;
+      --pill-bg-active: #e8e6e3;
+      --pill-text-active: #1a1a1a;
+      --piano-bg: #0a0908;
+      --white-key-grad-top: #d4cfc7;
+      --white-key-grad-mid: #b8b2a8;
+      --white-key-grad-bot: #8a8279;
+      --white-key-active-top: #a39e96;
+      --white-key-active-mid: #8a8279;
+      --white-key-active-bot: #7a756d;
+      --black-key-grad-top: #3a3530;
+      --black-key-grad-mid: #1a1714;
+      --black-key-grad-bot: #0a0908;
+      --black-key-active-top: #4a453f;
+      --black-key-active-mid: #2a2520;
+      --black-key-active-bot: #1a1714;
+      --overlay-bg: rgba(0,0,0,0.7);
+      --modal-bg: #2a2520;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      overflow-x: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      width: 100%;
+      padding: 1.8rem 0 0.6rem;
+      text-align: center;
+      user-select: none;
+      position: relative;
+    }
+
+    #header-left-controls {
+      position: absolute;
+      top: 1.8rem;
+      left: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #settings-btn {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    #settings-btn:hover {
+      color: var(--text);
+    }
+
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+
+    #midi-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 0.4rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.04);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    #midi-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #c4a262;
+      flex-shrink: 0;
+    }
+
+    #midi-status.connected #midi-dot { background: #5a9a5a; }
+    #midi-status.error #midi-dot { background: #b05050; }
+
+    /* ── Instrument selector ──────────────────────── */
+    #controls {
+      width: 100%;
+      padding: 1rem 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Category tabs */
+    #cat-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 1rem;
+      max-width: 900px;
+    }
+
+    .cat-tab {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.14s, background 0.14s;
+      white-space: nowrap;
+    }
+
+    .cat-tab:hover { color: var(--text); background: rgba(128,128,128,0.1); }
+
+    .cat-tab.active {
+      color: var(--text);
+      background: rgba(128,128,128,0.15);
+      font-weight: 600;
+    }
+
+    /* Divider */
+    #inst-divider {
+      width: calc(100% - 2rem);
+      max-width: 860px;
+      height: 1px;
+      background: var(--border);
+      margin: 8px 0;
+    }
+
+    /* Instrument pills row */
+    #inst-row-wrap {
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    #inst-row-wrap::-webkit-scrollbar { display: none; }
+
+    #inst-row {
+      display: flex;
+      gap: 5px;
+      padding: 0 1rem 2px;
+      width: max-content;
+      margin: 0 auto;
+    }
+
+    .inst-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.14s;
+      flex-shrink: 0;
+    }
+
+    .inst-pill:hover {
+      border-color: var(--border-hover);
+      background: var(--pill-bg-hover);
+    }
+
+    .inst-pill.active {
+      background: var(--pill-bg-active);
+      border-color: var(--pill-bg-active);
+      color: var(--pill-text-active);
+    }
+
+    /* Load status dot */
+    #load-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      height: 18px;
+    }
+
+    #load-status::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #c4a262;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    #load-status.loading::before { background: #c4a262; }
+    #load-status.ready::before { background: #5a9a5a; }
+
+    /* ── Piano ────────────────────────────────────── */
+    #piano-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.8rem 0 2rem;
+      overflow-x: auto;
+    }
+
+    #piano {
+      position: relative;
+      display: flex;
+      height: 220px;
+      background: var(--piano-bg);
+      border-radius: 0 0 6px 6px;
+      padding: 6px 4px 8px;
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.18),
+        0 1px 3px rgba(0,0,0,0.12);
+      user-select: none;
+      -webkit-user-select: none;
+      transform-origin: top center;
+      transition: transform 0.1s;
+    }
+
+    .key-white {
+      position: relative;
+      width: var(--white-key-width);
+      height: var(--white-key-height);
+      background: linear-gradient(to bottom, var(--white-key-grad-top) 0%, var(--white-key-grad-mid) 88%, var(--white-key-grad-bot) 100%);
+      border: 1px solid rgba(0,0,0,0.15);
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+
+    .key-white:last-child { margin-right: 0; }
+
+    .key-white.active {
+      background: linear-gradient(to bottom, var(--white-key-active-top) 0%, var(--white-key-active-mid) 88%, var(--white-key-active-bot) 100%);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .key-black {
+      position: absolute;
+      width: 14px;
+      height: 130px;
+      background: linear-gradient(to bottom, var(--black-key-grad-top) 0%, var(--black-key-grad-mid) 60%, var(--black-key-grad-bot) 100%);
+      border-radius: 0 0 3px 3px;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow:
+        -1px 0 0 rgba(0,0,0,0.3),
+         1px 0 0 rgba(0,0,0,0.3),
+         0 2px 4px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+
+    .key-black.active {
+      height: 128px;
+      background: linear-gradient(to bottom, var(--black-key-active-top) 0%, var(--black-key-active-mid) 60%, var(--black-key-active-bot) 100%);
+    }
+
+    #chord-display {
+      font-size: 1.8rem;
+      font-family: 'DM Serif Display', serif;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      transition: font-size 0.2s, opacity 0.2s;
+    }
+
+    #chord-display.size-small { font-size: 1.3rem; }
+    #chord-display.size-large { font-size: 2.6rem; }
+
+    /* Settings UI */
+    #settings-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--overlay-bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+    #settings-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #settings-modal {
+      display: flex;
+      background: var(--modal-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      width: 600px;
+      max-width: 90vw;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .settings-sidebar {
+      width: 180px;
+      background: rgba(0,0,0,0.2);
+      padding: 1.5rem 1rem;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .settings-sidebar h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.6rem;
+      font-family: 'DM Serif Display', serif;
+      font-weight: 400;
+      padding-left: 0.5rem;
+    }
+    
+    .settings-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background 0.2s, color 0.2s;
+    }
+    
+    .settings-tab:hover {
+      background: rgba(0,0,0,0.1);
+      color: var(--text);
+    }
+    
+    .settings-tab.active {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .settings-content {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 350px;
+    }
+
+    .settings-pane {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .settings-pane.active {
+      display: flex;
+    }
+
+    .settings-footer {
+      margin-top: auto;
+      padding-top: 2rem;
+    }
+
+    #resize-sidebar {
+      background: var(--modal-bg);
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: 300px;
+      transition: transform 0.3s;
+    }
+    #settings-modal.hidden, #resize-sidebar.hidden {
+      display: none;
+    }
+
+    #resize-sidebar h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.4rem;
+      font-family: 'DM Serif Display', serif;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+    
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    .setting-row select, .setting-row button {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .setting-row button:hover { background: var(--border); }
+    .settings-section {
+      font-size: 0.85rem;
+      font-family: 'DM Serif Display', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3rem;
+      font-weight: 400;
+    }
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    .setting-row select, .setting-row button {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .setting-row button:hover { background: var(--border); }
+    
+    #settings-close, #resize-confirm, #resize-cancel {
+      margin-top: 1.5rem;
+      padding: 8px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      width: 100%;
+    }
+
+    /* Custom Range Slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type="range"]:focus {
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      background: var(--border-hover);
+      border-radius: 2px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: var(--text);
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -6px;
+    }
+    input[type="range"]::-moz-range-track {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      background: var(--border-hover);
+      border-radius: 2px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: var(--text);
+      cursor: pointer;
+      border: none;
+    }
+
+    body.piano-resize-mode #settings-overlay {
+      align-items: flex-start;
+      padding-top: 2rem;
+      padding-left: 2rem;
+      justify-content: flex-start;
+    }
+    body.piano-resize-mode #piano {
+      z-index: 101;
+    }
+
+    #sustain-ui-wrapper {
+      display: flex;
+      align-items: center;
+    }
+    #sustain-ui-wrapper.hidden { display: none; }
+    
+    #sustain-btn {
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    #sustain-btn:hover, #sustain-btn.active {
+      color: var(--text);
+    }
+    #sustain-ui-slider {
+      -webkit-appearance: none;
+      background: transparent;
+      width: 0;
+      opacity: 0;
+      height: 20px;
+      pointer-events: none;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+    }
+    #sustain-ui-slider.visible {
+      width: 70px;
+      opacity: 1;
+      pointer-events: auto;
+      margin-left: 10px;
+    }
+    #sustain-ui-slider::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 2px;
+      background: rgba(150, 150, 150, 0.3);
+      border-radius: 1px;
+    }
+    #sustain-ui-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      margin-top: -5px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    #sustain-ui-slider::-webkit-slider-thumb:hover {
+      background: var(--text);
+      transform: scale(1.3);
+    }
+
+    #metronome-ui-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    #metronome-ui-wrapper.hidden { display: none; }
+
+    #metronome-btn {
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    #metronome-btn:hover, #metronome-btn.active {
+      color: var(--text);
+    }
+    
+    #metronome-popover {
+      position: absolute;
+      top: 35px;
+      left: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s;
+    }
+    #metronome-popover.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Hide number input arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .key-white.active { background: #e0e0e0; }
+    .key-black.active { background: #444; }
+
+    #start-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: opacity 0.5s;
+    }
+
+    @media (max-width: 600px) {
+      :root {
+        --white-key-width: 24px;
+        --white-key-height: 140px;
+        --black-key-width: 14px;
+        --black-key-height: 85px;
+      }
+      header { padding: 1rem 0; }
+      header h1 { font-size: 1.2rem; }
+      #header-left-controls {
+        position: static;
+        justify-content: center;
+        margin-top: 15px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      #metronome-popover {
+        top: 30px;
+        left: -80px;
+      }
+      #midi-status { display: none; }
+      
+      #controls { padding: 10px 5px; }
+      #inst-row-wrap { max-height: 140px; overflow-y: auto; padding-right: 5px; }
+      #inst-row-wrap::-webkit-scrollbar { width: 4px; }
+      #inst-row-wrap::-webkit-scrollbar-track { background: transparent; }
+      #inst-row-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      .cat-tab { font-size: 0.6rem; padding: 5px 8px; }
+      .inst-pill { font-size: 0.7rem; padding: 6px 12px; }
+      
+      #piano-wrapper {
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+      }
+      #piano-wrapper::-webkit-scrollbar { height: 8px; }
+      #piano-wrapper::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
+      #piano-wrapper::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+      #piano { height: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="start-overlay">
+    <div>Click anywhere to start</div>
+  </div>
+
+  <header>
+    <div id="header-left-controls">
+      <div id="settings-btn" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </div>
+      <div id="sustain-ui-wrapper">
+        <svg id="sustain-btn" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Sustain Pedal">
+          <rect x="4" y="14" width="16" height="6" rx="2" ry="2"></rect>
+          <path d="M12 14L12 4"></path>
+          <path d="M9 4L15 4"></path>
+        </svg>
+        <input type="range" id="sustain-ui-slider" min="0" max="2" step="1" value="0">
+      </div>
+      <div id="metronome-ui-wrapper">
+        <svg id="metronome-btn" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Metronome">
+          <path d="M5 21h14"></path>
+          <path d="M7 21L10 5a2 2 0 0 1 4 0l3 16"></path>
+          <path d="M12 17v-4"></path>
+          <path d="M12 5L15 9"></path>
+        </svg>
+        <div id="metronome-popover" class="hidden">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 12px; gap: 15px;">
+            <span style="font-size: 0.8rem; font-weight: 500;">BPM: <input type="number" id="bpm-input" value="120" min="40" max="240" style="width: 34px; border: none; background: transparent; color: var(--text); font-weight: inherit; font-family: inherit; font-size: inherit; text-align: center; outline: none; border-bottom: 1px dashed var(--text-muted); padding: 0;"></span>
+            <button id="metronome-play-btn" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; transition: background 0.2s;">Play</button>
+          </div>
+          <input type="range" id="bpm-slider" min="40" max="240" value="120" style="width: 120px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">Vol</span>
+            <input type="range" id="metronome-vol-slider" min="0" max="1" step="0.01" value="0.5" style="width: 85px;">
+          </div>
+        </div>
+      </div>
+    </div>
+    <h1>Skalekiano</h1>
+    <div id="midi-status"><span id="midi-dot"></span><span id="midi-text">looking for MIDI devices…</span></div>
+  </header>
+
+  <div id="controls">
+    <div id="cat-row"></div>
+    <div id="inst-divider"></div>
+    <div id="inst-row-wrap"><div id="inst-row"></div></div>
+    <span id="load-status">loading…</span>
+  </div>
+
+  <div id="piano-wrapper">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <div id="piano"></div>
+      <div id="chord-display" class="size-medium"></div>
+    </div>
+  </div>
+
+  <div id="settings-overlay" class="hidden">
+    <div id="settings-modal" class="settings-sidebar-layout">
+      <div class="settings-sidebar">
+        <h2>Settings</h2>
+        <button class="settings-tab active" data-tab="pane-input">Input</button>
+        <button class="settings-tab" data-tab="pane-output">Output</button>
+        <button class="settings-tab" data-tab="pane-piano">Piano & UI</button>
+      </div>
+
+      <div class="settings-content">
+        <!-- INPUT PANE -->
+        <div id="pane-input" class="settings-pane active">
+          <div class="setting-row">
+            <label>MIDI Connected</label>
+            <span id="midi-devices-list" style="font-weight: 500; font-size: 0.8rem; color: var(--text-muted);">None</span>
+          </div>
+          <div class="setting-row">
+            <label>Pitch Bend</label>
+            <button id="toggle-pitch-bend-btn">Off</button>
+          </div>
+          <div class="setting-row">
+            <label>Modulation Wheel</label>
+            <button id="toggle-modulation-btn">Off</button>
+          </div>
+          <div class="setting-row">
+            <label>Show Sustain Pedal</label>
+            <button id="toggle-sustain-ui-btn">Off</button>
+          </div>
+          <div class="setting-row">
+            <label>Show Metronome</label>
+            <button id="toggle-metronome-ui-btn">Off</button>
+          </div>
+        </div>
+
+        <!-- OUTPUT PANE -->
+        <div id="pane-output" class="settings-pane">
+          <div class="setting-row">
+            <label>Audio Device</label>
+            <select id="audio-output-select">
+              <option value="default">Default</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Master Volume</label>
+            <input type="range" id="master-volume-slider" min="0" max="1" step="0.05" value="0.8" style="width: 100px;">
+          </div>
+        </div>
+        
+        <!-- PIANO & UI PANE -->
+        <div id="pane-piano" class="settings-pane">
+          <div class="setting-row">
+            <label>Theme</label>
+            <button id="theme-toggle">Light</button>
+          </div>
+          <div class="setting-row">
+            <label>Keys Rendered</label>
+            <select id="keys-shown-select">
+              <option value="25">25 Keys</option>
+              <option value="49">49 Keys</option>
+              <option value="61">61 Keys</option>
+              <option value="88" selected>88 Keys</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Piano Size</label>
+            <button id="resize-piano-btn">Resize...</button>
+          </div>
+          <div class="setting-row">
+            <label>Show Chords</label>
+            <button id="toggle-chords-btn">On</button>
+          </div>
+          <div class="setting-row">
+            <label>Chord Text Size</label>
+            <select id="chord-size-select">
+              <option value="size-small">Small</option>
+              <option value="size-medium" selected>Medium</option>
+              <option value="size-large">Large</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button id="settings-close">Close</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="resize-sidebar" class="hidden">
+      <h3>Adjust Size</h3>
+      <input type="range" id="piano-scale-slider" min="0.5" max="1.5" step="0.05" value="1">
+      <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <button id="resize-confirm" style="flex: 1;">Done</button>
+        <button id="resize-cancel" style="flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ── GM instrument catalog ──────────────────────────
+  const GM_CATEGORIES = [
+    { name: 'Piano', from: 0, to: 7 },
+    { name: 'Chromatic Percussion', from: 8, to: 15 },
+    { name: 'Organ', from: 16, to: 23 },
+    { name: 'Guitar', from: 24, to: 31 },
+    { name: 'Bass', from: 32, to: 39 },
+    { name: 'Strings', from: 40, to: 47 },
+    { name: 'Ensemble', from: 48, to: 55 },
+    { name: 'Brass', from: 56, to: 63 },
+    { name: 'Reed', from: 64, to: 71 },
+    { name: 'Pipe', from: 72, to: 79 },
+    { name: 'Synth Lead', from: 80, to: 87 },
+    { name: 'Synth Pad', from: 88, to: 95 },
+    { name: 'Synth Effects', from: 96, to: 103 },
+    { name: 'Ethnic', from: 104, to: 111 },
+    { name: 'Percussive', from: 112, to: 119 },
+    { name: 'Sound Effects', from: 120, to: 127 }
+  ];
+
+  const GM_NAMES = [
+    'Acoustic Grand Piano','Bright Acoustic Piano','Electric Grand Piano','Honky-tonk Piano',
+    'Electric Piano 1','Electric Piano 2','Harpsichord','Clavinet',
+    'Celesta','Glockenspiel','Music Box','Vibraphone',
+    'Marimba','Xylophone','Tubular Bells','Dulcimer',
+    'Drawbar Organ','Percussive Organ','Rock Organ','Church Organ',
+    'Reed Organ','Accordion','Harmonica','Tango Accordion',
+    'Acoustic Guitar (nylon)','Acoustic Guitar (steel)','Electric Guitar (jazz)','Electric Guitar (clean)',
+    'Electric Guitar (muted)','Overdriven Guitar','Distortion Guitar','Guitar Harmonics',
+    'Acoustic Bass','Electric Bass (finger)','Electric Bass (pick)','Fretless Bass',
+    'Slap Bass 1','Slap Bass 2','Synth Bass 1','Synth Bass 2',
+    'Violin','Viola','Cello','Contrabass',
+    'Tremolo Strings','Pizzicato Strings','Orchestral Harp','Timpani',
+    'String Ensemble 1','String Ensemble 2','Synth Strings 1','Synth Strings 2',
+    'Choir Aahs','Voice Oohs','Synth Voice','Orchestra Hit',
+    'Trumpet','Trombone','Tuba','Muted Trumpet',
+    'French Horn','Brass Section','Synth Brass 1','Synth Brass 2',
+    'Soprano Sax','Alto Sax','Tenor Sax','Baritone Sax',
+    'Oboe','English Horn','Bassoon','Clarinet',
+    'Piccolo','Flute','Recorder','Pan Flute',
+    'Blown Bottle','Shakuhachi','Whistle','Ocarina',
+    'Lead 1 (square)','Lead 2 (sawtooth)','Lead 3 (calliope)','Lead 4 (chiff)',
+    'Lead 5 (charang)','Lead 6 (voice)','Lead 7 (fifths)','Lead 8 (bass + lead)',
+    'Pad 1 (new age)','Pad 2 (warm)','Pad 3 (polysynth)','Pad 4 (choir)',
+    'Pad 5 (bowed)','Pad 6 (metallic)','Pad 7 (halo)','Pad 8 (sweep)',
+    'FX 1 (rain)','FX 2 (soundtrack)','FX 3 (crystal)','FX 4 (atmosphere)',
+    'FX 5 (brightness)','FX 6 (goblins)','FX 7 (echoes)','FX 8 (sci-fi)',
+    'Sitar','Banjo','Shamisen','Koto',
+    'Kalimba','Bagpipe','Fiddle','Shanai',
+    'Tinkle Bell','Agogo','Steel Drums','Woodblock',
+    'Taiko Drum','Melodic Tom','Synth Drum','Reverse Cymbal',
+    'Guitar Fret Noise','Breath Noise','Seashore','Bird Tweet',
+    'Telephone Ring','Helicopter','Applause','Gunshot'
+  ];
+
+  // ── Audio setup ────────────────────────────────────
+  let audioCtx = null;
+  let player = null;
+  let currentProgram = 0;
+  let currentTone = null;
+  let modFilter = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      modFilter = audioCtx.createBiquadFilter();
+      modFilter.type = 'lowpass';
+      modFilter.frequency.value = 20000;
+      modFilter.connect(audioCtx.destination);
+
+      const audioOutputSelect = document.getElementById('audio-output-select');
+      const selectedSink = audioOutputSelect ? audioOutputSelect.value : 'default';
+      if (selectedSink && selectedSink !== 'default' && typeof audioCtx.setSinkId !== 'undefined') {
+        audioCtx.setSinkId(selectedSink).catch(console.error);
+      }
+      player = new WebAudioFontPlayer();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // ── Instrument loading ─────────────────────────────
+  // WebAudioFont key pattern: String(program * 10).padStart(4,'0') + '_FluidR3_GM_sf2_file'
+  // Variable: '_tone_' + key   URL: base + key + '.js'
+  const WAF_BASE = 'https://surikov.github.io/webaudiofontdata/sound/';
+  const WAF_FONT = '_FluidR3_GM_sf2_file';
+
+  function instrKey(program) {
+    return String(program * 10).padStart(4, '0') + WAF_FONT;
+  }
+
+  const loadStatusEl = document.getElementById('load-status');
+  const instrumentCache = {};
+
+  function loadInstrument(program) {
+    ensureAudio();
+    currentProgram = program;
+
+    // already cached and decoded
+    if (instrumentCache[program]) {
+      currentTone = instrumentCache[program];
+      loadStatusEl.textContent = 'ready';
+      loadStatusEl.className = 'ready';
+      return;
+    }
+
+    loadStatusEl.textContent = 'loading…';
+    loadStatusEl.className = 'loading';
+    currentTone = null;
+
+    const key = instrKey(program);
+    const varName = '_tone_' + key;
+    const url = WAF_BASE + key + '.js';
+
+    // inject script + start decoding
+    player.loader.startLoad(audioCtx, url, varName);
+
+    // poll until THIS specific variable is fully decoded
+    function waitForVariable() {
+      if (player.loader.loaded(varName)) {
+        const tone = window[varName];
+        instrumentCache[program] = tone;
+        // only apply if user hasn't switched to something else
+        if (currentProgram === program) {
+          currentTone = tone;
+          loadStatusEl.textContent = 'ready';
+          loadStatusEl.className = 'ready';
+        }
+      } else {
+        setTimeout(waitForVariable, 100);
+      }
+    }
+    waitForVariable();
+  }
+
+  // ── Note playing ───────────────────────────────────
+  const activeNotes = {};
+  const sustainedNotes = new Set();
+  let masterVolume = 0.8;
+  let sustainValue = 0;
+  let currentPitchBend = 0;
+
+  function playNote(midi, velocity = 100) {
+    ensureAudio();
+    if (!currentTone) return;
+    
+    if (activeNotes[midi]) {
+      if (activeNotes[midi].gainNode) {
+        activeNotes[midi].gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+        activeNotes[midi].gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        const oldGain = activeNotes[midi].gainNode;
+        setTimeout(() => { try { oldGain.disconnect(); } catch(e){} }, 500);
+      }
+      activeNotes[midi].envelope.cancel();
+      clearTimeout(activeNotes[midi].decayTimeout);
+      delete activeNotes[midi];
+    }
+    sustainedNotes.delete(midi);
+
+    const vol = (velocity / 127) * masterVolume;
+    
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = vol;
+    gainNode.connect(modFilter);
+    
+    const envelope = player.queueWaveTable(
+      audioCtx, gainNode, currentTone,
+      0, midi + currentPitchBend, 999, 1.0
+    );
+    activeNotes[midi] = { envelope, gainNode, midi };
+    updateChord();
+  }
+
+  function applyDampening(noteObj) {
+    if (!noteObj) return;
+    const now = audioCtx.currentTime;
+    noteObj.gainNode.gain.cancelScheduledValues(now);
+    clearTimeout(noteObj.decayTimeout);
+    
+    if (sustainValue > 110) {
+      // Full sustain (catch the note)
+    } else {
+      const dampening = 0.05 + (sustainValue / 127) * 2.5; // up to 2.5s decay
+      noteObj.gainNode.gain.setTargetAtTime(0, now, dampening);
+      
+      // Cleanup to prevent memory leaks
+      noteObj.decayTimeout = setTimeout(() => {
+        if (activeNotes[noteObj.midi] === noteObj) {
+          noteObj.envelope.cancel();
+          setTimeout(() => { try { noteObj.gainNode.disconnect(); } catch(e){} }, 500);
+          delete activeNotes[noteObj.midi];
+          sustainedNotes.delete(noteObj.midi);
+        }
+      }, dampening * 4000);
+    }
+  }
+
+  function stopNote(midi) {
+    const noteObj = activeNotes[midi];
+    if (noteObj) {
+      if (sustainValue > 10) {
+        sustainedNotes.add(midi);
+        applyDampening(noteObj);
+      } else {
+        noteObj.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+        noteObj.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+        clearTimeout(noteObj.decayTimeout);
+        setTimeout(() => { 
+          if (activeNotes[midi] === noteObj) noteObj.envelope.cancel();
+          setTimeout(() => { try { noteObj.gainNode.disconnect(); } catch(e){} }, 500);
+        }, 200);
+        delete activeNotes[midi];
+        updateChord();
+      }
+    }
+  }
+
+  // ── Chord Recognition ──────────────────────────────
+  const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const CHORD_DICT = {
+    "0,4,7": "",
+    "0,3,7": "m",
+    "0,3,6": "dim",
+    "0,4,8": "aug",
+    "0,2,7": "sus2",
+    "0,5,7": "sus4",
+    "0,4,7,11": "maj7",
+    "0,4,7,10": "7",
+    "0,3,7,10": "m7",
+    "0,3,7,11": "mM7",
+    "0,3,6,10": "m7b5",
+    "0,3,6,9": "dim7",
+    "0,4,8,11": "augM7",
+    "0,4,8,10": "aug7",
+    "0,5,7,10": "7sus4",
+    "0,2,4,7,10": "9",
+    "0,2,4,7,11": "maj9",
+    "0,2,3,7,10": "m9",
+    "0,4,7,9": "6",
+    "0,3,7,9": "m6",
+    "0,2,4,7,9": "6/9",
+    "0,2,4,5,7,10": "11",
+    "0,2,4,5,7,9,10": "13",
+    "0,2,4,7": "add9",
+    "0,2,3,7": "m(add9)"
+  };
+
+  const chordDisplay = document.getElementById('chord-display');
+
+  function updateChord() {
+    const active = Object.keys(activeNotes).map(Number).sort((a,b) => a - b);
+    if (active.length === 0) {
+      chordDisplay.textContent = "";
+      return;
+    }
+    if (active.length === 1) {
+      chordDisplay.textContent = NOTES[active[0] % 12];
+      return;
+    }
+    
+    let bestMatch = "";
+    
+    // Check each note as potential root
+    for (let i = 0; i < active.length; i++) {
+      const rootMidi = active[i];
+      const rootName = NOTES[rootMidi % 12];
+      
+      const intervals = [];
+      active.forEach(midi => {
+        let diff = (midi - rootMidi) % 12;
+        if (diff < 0) diff += 12;
+        if (!intervals.includes(diff)) intervals.push(diff);
+      });
+      intervals.sort((a,b) => a - b);
+      
+      const pattern = intervals.join(',');
+      if (CHORD_DICT[pattern] !== undefined) {
+        let chordName = rootName + CHORD_DICT[pattern];
+        // Inversions (slash chords)
+        if (active[0] % 12 !== rootMidi % 12) {
+            chordName += "/" + NOTES[active[0] % 12];
+        }
+        bestMatch = chordName;
+        break;
+      }
+    }
+    
+    if (bestMatch === "") {
+      const uniqueNotes = [...new Set(active.map(m => NOTES[m % 12]))];
+      chordDisplay.textContent = uniqueNotes.join(', ');
+    } else {
+      chordDisplay.textContent = bestMatch;
+    }
+  }
+
+  // ── UI: category tabs + instrument pills ───────────
+  const catRow = document.getElementById('cat-row');
+  const instRow = document.getElementById('inst-row');
+
+  function selectInstrument(program) {
+    instRow.querySelectorAll('.inst-pill').forEach(p => p.classList.remove('active'));
+    const target = instRow.querySelector('[data-program="' + program + '"]');
+    if (target) {
+      target.classList.add('active');
+      target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
+    Object.keys(activeNotes).forEach(m => stopNote(Number(m)));
+    loadInstrument(program);
+  }
+
+  function populateInstruments(catIndex) {
+    const cat = GM_CATEGORIES[catIndex];
+    instRow.innerHTML = '';
+    for (let p = cat.from; p <= cat.to; p++) {
+      const btn = document.createElement('button');
+      btn.className = 'inst-pill';
+      btn.dataset.program = p;
+      btn.textContent = GM_NAMES[p];
+      btn.addEventListener('click', () => selectInstrument(p));
+      instRow.appendChild(btn);
+    }
+  }
+
+  function selectCategory(catIndex) {
+    catRow.querySelectorAll('.cat-tab').forEach((t, i) =>
+      t.classList.toggle('active', i === catIndex)
+    );
+    populateInstruments(catIndex);
+    selectInstrument(GM_CATEGORIES[catIndex].from);
+  }
+
+  GM_CATEGORIES.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-tab';
+    btn.textContent = cat.name;
+    btn.addEventListener('click', () => selectCategory(i));
+    catRow.appendChild(btn);
+  });
+
+  // init: Piano -> Acoustic Grand Piano
+  selectCategory(0);
+
+  // ── Piano layout ───────────────────────────────────
+  const blackInOctave = new Set([1, 3, 6, 8, 10]);
+
+  function isBlack(midi) {
+    return blackInOctave.has((midi - 21 + 9) % 12);
+  }
+
+  const piano = document.getElementById('piano');
+  let keyElements = {};
+  const whiteWidth = 23;
+
+  function renderPiano(numKeys) {
+    piano.innerHTML = '';
+    keyElements = {};
+    let startMidi = 21; // 88 keys
+    let endMidi = 108;
+
+    if (numKeys === 25) { startMidi = 48; endMidi = 72; }
+    else if (numKeys === 49) { startMidi = 36; endMidi = 84; }
+    else if (numKeys === 61) { startMidi = 36; endMidi = 96; }
+
+    let whiteIndex = 0;
+    
+    for (let midi = startMidi; midi <= endMidi; midi++) {
+      if (isBlack(midi)) continue;
+      const el = document.createElement('div');
+      el.className = 'key-white';
+      el.dataset.midi = midi;
+      piano.appendChild(el);
+      keyElements[midi] = { el, whitePos: whiteIndex };
+      whiteIndex++;
+    }
+
+    for (let midi = startMidi; midi <= endMidi; midi++) {
+      if (!isBlack(midi)) continue;
+      const prevWhite = keyElements[midi - 1];
+      if (!prevWhite) continue;
+      const el = document.createElement('div');
+      el.className = 'key-black';
+      el.dataset.midi = midi;
+      el.style.left = `calc(4px + ${(prevWhite.whitePos + 1)} * var(--white-key-width) - calc(var(--black-key-width) / 2))`;
+      piano.appendChild(el);
+      keyElements[midi] = { el };
+    }
+  }
+
+  renderPiano(88);
+
+  // ── Settings UI ────────────────────────────────────
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsModal = document.getElementById('settings-modal');
+  const resizeSidebar = document.getElementById('resize-sidebar');
+  const settingsClose = document.getElementById('settings-close');
+  
+  const themeToggle = document.getElementById('theme-toggle');
+  const keysShownSelect = document.getElementById('keys-shown-select');
+  const chordSizeSelect = document.getElementById('chord-size-select');
+  const resizePianoBtn = document.getElementById('resize-piano-btn');
+  const toggleChordsBtn = document.getElementById('toggle-chords-btn');
+  const toggleSustainUiBtn = document.getElementById('toggle-sustain-ui-btn');
+  const toggleMetronomeUiBtn = document.getElementById('toggle-metronome-ui-btn');
+  const masterVolumeSlider = document.getElementById('master-volume-slider');
+  const pianoScaleSlider = document.getElementById('piano-scale-slider');
+  const resizeConfirm = document.getElementById('resize-confirm');
+  const resizeCancel = document.getElementById('resize-cancel');
+  const sustainUiWrapper = document.getElementById('sustain-ui-wrapper');
+  const sustainBtn = document.getElementById('sustain-btn');
+  const sustainUiSlider = document.getElementById('sustain-ui-slider');
+  const metronomeUiWrapper = document.getElementById('metronome-ui-wrapper');
+  const metronomeBtn = document.getElementById('metronome-btn');
+  const metronomePopover = document.getElementById('metronome-popover');
+  const metronomePlayBtn = document.getElementById('metronome-play-btn');
+  const bpmSlider = document.getElementById('bpm-slider');
+  const bpmDisplay = document.getElementById('bpm-display');
+  
+  const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+
+  let isDark = false; // Always light mode by default
+  localStorage.setItem('skalekiano-theme', 'light');
+  
+  const updateThemeUI = () => {
+    if (isDark) {
+      document.body.classList.add('dark-mode');
+      themeToggle.innerHTML = `${moonIcon} Dark`;
+    } else {
+      document.body.classList.remove('dark-mode');
+      themeToggle.innerHTML = `${sunIcon} Light`;
+    }
+  };
+  
+  updateThemeUI();
+
+  themeToggle.addEventListener('click', () => {
+    isDark = !isDark;
+    updateThemeUI();
+    localStorage.setItem('skalekiano-theme', isDark ? 'dark' : 'light');
+  });
+  
+  const togglePitchBendBtn = document.getElementById('toggle-pitch-bend-btn');
+  const toggleModulationBtn = document.getElementById('toggle-modulation-btn');
+
+  let enablePitchBend = false;
+  togglePitchBendBtn.addEventListener('click', () => {
+    enablePitchBend = !enablePitchBend;
+    togglePitchBendBtn.textContent = enablePitchBend ? 'On' : 'Off';
+    if (!enablePitchBend) {
+      currentPitchBend = 0;
+      Object.values(activeNotes).forEach(noteObj => {
+        if (noteObj.envelope && noteObj.envelope.audioBufferSourceNode) {
+          noteObj.envelope.audioBufferSourceNode.playbackRate.value = 1.0;
+        }
+      });
+    }
+  });
+
+  let enableModulation = false;
+  toggleModulationBtn.addEventListener('click', () => {
+    enableModulation = !enableModulation;
+    toggleModulationBtn.textContent = enableModulation ? 'On' : 'Off';
+    if (!enableModulation && modFilter) {
+      modFilter.frequency.setTargetAtTime(20000, audioCtx.currentTime, 0.05);
+    }
+  });
+
+  let showChords = true;
+  toggleChordsBtn.addEventListener('click', () => {
+    showChords = !showChords;
+    toggleChordsBtn.textContent = showChords ? 'On' : 'Off';
+    chordDisplay.style.opacity = showChords ? '1' : '0';
+  });
+
+  let showSustainUi = true;
+  toggleSustainUiBtn.addEventListener('click', () => {
+    showSustainUi = !showSustainUi;
+    toggleSustainUiBtn.textContent = showSustainUi ? 'On' : 'Off';
+    sustainUiWrapper.classList.toggle('hidden', !showSustainUi);
+    if (!showSustainUi) {
+      setSustain(0);
+      sustainUiSlider.classList.remove('visible');
+    }
+  });
+
+  let showMetronomeUi = true;
+  toggleMetronomeUiBtn.addEventListener('click', () => {
+    showMetronomeUi = !showMetronomeUi;
+    toggleMetronomeUiBtn.textContent = showMetronomeUi ? 'On' : 'Off';
+    metronomeUiWrapper.classList.toggle('hidden', !showMetronomeUi);
+    if (!showMetronomeUi && isMetronomePlaying) {
+      toggleMetronome();
+    }
+  });
+
+  function setSustain(val) {
+    sustainValue = val;
+    if (val <= 10) sustainUiSlider.value = 0;
+    else if (val < 110) sustainUiSlider.value = 1;
+    else sustainUiSlider.value = 2;
+    
+    if (val >= 64) {
+      sustainBtn.classList.add('active');
+    } else {
+      sustainBtn.classList.remove('active');
+    }
+
+    sustainedNotes.forEach(midi => {
+      const noteObj = activeNotes[midi];
+      if (noteObj) {
+        if (val <= 10) {
+          noteObj.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+          noteObj.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+          clearTimeout(noteObj.decayTimeout);
+          setTimeout(() => { 
+            if (activeNotes[midi] === noteObj) noteObj.envelope.cancel(); 
+            setTimeout(() => { try { noteObj.gainNode.disconnect(); } catch(e){} }, 500);
+          }, 200);
+          delete activeNotes[midi];
+          sustainedNotes.delete(midi);
+        } else {
+          applyDampening(noteObj);
+        }
+      }
+    });
+
+    if (val <= 10) {
+      sustainedNotes.clear();
+      updateChord();
+    }
+  }
+
+  sustainBtn.addEventListener('click', () => sustainUiSlider.classList.toggle('visible'));
+  sustainUiSlider.addEventListener('input', (e) => {
+    const step = Number(e.target.value);
+    const val = step === 0 ? 0 : (step === 1 ? 64 : 127);
+    setSustain(val);
+  });
+
+  masterVolumeSlider.addEventListener('input', (e) => {
+    masterVolume = Number(e.target.value);
+  });
+
+  // Metronome Logic
+  let metronomeInterval = null;
+  let nextClickTime = 0;
+  let bpm = 120;
+  let metronomeVolume = 0.5;
+  let isMetronomePlaying = false;
+  let metronomeBeat = 0;
+  let clickNoiseBuffer = null;
+
+  function playClick(time, isDownbeat = false) {
+    if (!audioCtx) return;
+    
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = masterVolume * metronomeVolume * (isDownbeat ? 1.5 : 1.0);
+    masterGain.connect(audioCtx.destination);
+    
+    const audioOutputSelect = document.getElementById('audio-output-select');
+    if (audioOutputSelect && audioCtx.setSinkId) {
+      const selectedSink = audioOutputSelect.value;
+      if (selectedSink && selectedSink !== 'default') {
+        audioCtx.setSinkId(selectedSink).catch(()=>{});
+      }
+    }
+    
+    // 1. The Wooden Block (Square wave through bandpass filter)
+    const osc = audioCtx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = isDownbeat ? 1100 : 800;
+    
+    const oscFilter = audioCtx.createBiquadFilter();
+    oscFilter.type = 'bandpass';
+    oscFilter.frequency.value = isDownbeat ? 1100 : 800;
+    oscFilter.Q.value = 2; // slight resonance
+    
+    const oscGain = audioCtx.createGain();
+    oscGain.gain.setValueAtTime(2.0, time);
+    oscGain.gain.setTargetAtTime(0, time, 0.005);
+    
+    osc.connect(oscFilter);
+    oscFilter.connect(oscGain);
+    oscGain.connect(masterGain);
+    
+    osc.start(time);
+    osc.stop(time + 0.05);
+
+    // 2. The Metal Mechanism Click (High-passed noise)
+    if (!clickNoiseBuffer) {
+      const bufferSize = audioCtx.sampleRate * 0.01; // 10ms of noise
+      clickNoiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = clickNoiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = clickNoiseBuffer;
+    
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 5000;
+    
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, time);
+    noiseGain.gain.setTargetAtTime(0, time, 0.002); // very sharp snap
+    
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    
+    noise.start(time);
+  }
+
+  function metronomeScheduler() {
+    if (!isMetronomePlaying) return;
+    while (nextClickTime < audioCtx.currentTime + 0.1) {
+      playClick(nextClickTime, metronomeBeat % 4 === 0);
+      nextClickTime += (60.0 / bpm);
+      metronomeBeat++;
+    }
+    metronomeInterval = setTimeout(metronomeScheduler, 25);
+  }
+
+  function toggleMetronome() {
+    ensureAudio();
+    isMetronomePlaying = !isMetronomePlaying;
+    if (isMetronomePlaying) {
+      metronomeBeat = 0;
+      nextClickTime = audioCtx.currentTime + 0.05;
+      metronomeScheduler();
+      metronomePlayBtn.textContent = 'Stop';
+      metronomeBtn.classList.add('active');
+    } else {
+      clearTimeout(metronomeInterval);
+      metronomePlayBtn.textContent = 'Play';
+      metronomeBtn.classList.remove('active');
+    }
+  }
+
+  metronomeBtn.addEventListener('click', () => {
+    metronomePopover.classList.toggle('hidden');
+  });
+
+  const bpmInput = document.getElementById('bpm-input');
+  bpmSlider.addEventListener('input', (e) => {
+    bpm = Number(e.target.value);
+    if (bpmInput) bpmInput.value = bpm;
+  });
+  if (bpmInput) {
+    bpmInput.addEventListener('change', (e) => {
+      let val = Number(e.target.value);
+      if (val < 40) val = 40;
+      if (val > 240) val = 240;
+      bpm = val;
+      bpmInput.value = val;
+      bpmSlider.value = val;
+    });
+  }
+
+  const metronomeVolSlider = document.getElementById('metronome-vol-slider');
+  if (metronomeVolSlider) {
+    metronomeVolSlider.addEventListener('input', (e) => {
+      metronomeVolume = Number(e.target.value);
+    });
+  }
+
+  metronomePlayBtn.addEventListener('click', toggleMetronome);
+
+  const audioOutputSelect = document.getElementById('audio-output-select');
+  async function populateAudioOutputs() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      audioOutputSelect.parentElement.style.display = 'none';
+      return;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+      
+      if (audioOutputs.length === 0) {
+        audioOutputSelect.parentElement.style.display = 'none';
+        return;
+      }
+      
+      audioOutputSelect.innerHTML = '';
+      const defaultOption = document.createElement('option');
+      defaultOption.value = 'default';
+      defaultOption.text = 'Default';
+      audioOutputSelect.appendChild(defaultOption);
+
+      audioOutputs.forEach(device => {
+        if (device.deviceId === 'default' || device.deviceId === '') return;
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.text = device.label || `Speaker ${audioOutputSelect.length}`;
+        audioOutputSelect.appendChild(option);
+      });
+      
+      audioOutputSelect.addEventListener('change', async () => {
+        ensureAudio();
+        if (audioCtx && typeof audioCtx.setSinkId !== 'undefined') {
+          try {
+            await audioCtx.setSinkId(audioOutputSelect.value);
+          } catch (err) {
+            console.error('Failed to set sink ID:', err);
+          }
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      audioOutputSelect.parentElement.style.display = 'none';
+    }
+  }
+  populateAudioOutputs();
+  
+  settingsBtn.addEventListener('click', () => settingsOverlay.classList.remove('hidden'));
+  settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+
+  const settingsTabs = document.querySelectorAll('.settings-tab');
+  const settingsPanes = document.querySelectorAll('.settings-pane');
+  settingsTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Remove active from all tabs
+      settingsTabs.forEach(t => t.classList.remove('active'));
+      settingsPanes.forEach(p => p.classList.remove('active'));
+      // Add active to clicked tab
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+  
+  keysShownSelect.addEventListener('change', (e) => renderPiano(Number(e.target.value)));
+  chordSizeSelect.addEventListener('change', (e) => chordDisplay.className = e.target.value);
+  
+  let originalScale = 1;
+  const updatePianoScale = (scale) => {
+    piano.style.transform = `scale(${scale})`;
+    piano.style.marginBottom = `${220 * (scale - 1)}px`;
+  };
+
+  resizePianoBtn.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+    resizeSidebar.classList.remove('hidden');
+    document.body.classList.add('piano-resize-mode');
+    const match = piano.style.transform.match(/scale\(([^)]+)\)/);
+    originalScale = match ? parseFloat(match[1]) : 1;
+    pianoScaleSlider.value = originalScale;
+  });
+  
+  pianoScaleSlider.addEventListener('input', (e) => updatePianoScale(e.target.value));
+  
+  const exitResizeMode = () => {
+    settingsModal.classList.remove('hidden');
+    resizeSidebar.classList.add('hidden');
+    document.body.classList.remove('piano-resize-mode');
+  };
+  
+  resizeConfirm.addEventListener('click', exitResizeMode);
+  resizeCancel.addEventListener('click', () => {
+    updatePianoScale(originalScale);
+    exitResizeMode();
+  });
+
+  // ── Mouse / touch ──────────────────────────────────
+  let pointerDown = false;
+
+  function handleDown(e) {
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
+    e.preventDefault();
+    pointerDown = true;
+    e.target.classList.add('active');
+    playNote(midi);
+  }
+
+  function handleUp(e) {
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
+    pointerDown = false;
+    e.target.classList.remove('active');
+    stopNote(midi);
+  }
+
+  function handleEnter(e) {
+    if (!pointerDown) return;
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
+    e.target.classList.add('active');
+    playNote(midi);
+  }
+
+  function handleLeave(e) {
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
+    e.target.classList.remove('active');
+    stopNote(midi);
+  }
+
+  piano.addEventListener('mousedown', handleDown);
+  piano.addEventListener('mouseup', handleUp);
+  piano.addEventListener('mouseover', handleEnter);
+  piano.addEventListener('mouseout', handleLeave);
+  document.addEventListener('mouseup', () => { pointerDown = false; });
+
+  const activeTouches = {};
+  piano.addEventListener('touchstart', (e) => {
+    onFirstInteraction();
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      if (el) {
+        activeTouches[t.identifier] = el;
+        handleDown({ target: el, preventDefault: () => {} });
+      }
+    }
+  }, { passive: false });
+  
+  piano.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const prevEl = activeTouches[t.identifier];
+      if (el && el !== prevEl) {
+        if (prevEl) handleUp({ target: prevEl, preventDefault: () => {} });
+        activeTouches[t.identifier] = el;
+        handleDown({ target: el, preventDefault: () => {} });
+      }
+    }
+  }, { passive: false });
+
+  piano.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const prevEl = activeTouches[t.identifier];
+      if (prevEl) {
+        handleUp({ target: prevEl, preventDefault: () => {} });
+        delete activeTouches[t.identifier];
+      }
+    }
+  });
+
+  piano.addEventListener('touchcancel', (e) => {
+    for (const t of e.changedTouches) {
+      const prevEl = activeTouches[t.identifier];
+      if (prevEl) {
+        handleUp({ target: prevEl, preventDefault: () => {} });
+        delete activeTouches[t.identifier];
+      }
+    }
+  });
+
+  // ── MIDI input ─────────────────────────────────────
+  const statusEl = document.getElementById('midi-status');
+  const statusText = document.getElementById('midi-text');
+
+  function onMIDIMessage(e) {
+    onFirstInteraction(); // Ensure audio unlocks on MIDI play
+    const [status, note, velocity] = e.data;
+    const cmd = status & 0xf0;
+
+    if (cmd === 0x90 && velocity > 0) {
+      const entry = keyElements[note];
+      if (entry) entry.el.classList.add('active');
+      playNote(note, velocity);
+    } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+      const entry = keyElements[note];
+      if (entry) entry.el.classList.remove('active');
+      stopNote(note);
+    } else if (cmd === 0xB0 && note === 64) {
+      if (!showSustainUi) {
+        showSustainUi = true;
+        document.getElementById('toggle-sustain-ui-btn').textContent = 'On';
+        document.getElementById('sustain-ui-wrapper').classList.remove('hidden');
+      }
+      setSustain(velocity);
+    } else if (cmd === 0xE0 && enablePitchBend) {
+      const val = (velocity << 7) | note;
+      currentPitchBend = ((val - 8192) / 8192) * 2; // +/- 2 semitones
+      Object.values(activeNotes).forEach(noteObj => {
+        if (noteObj.envelope && noteObj.envelope.audioBufferSourceNode) {
+          noteObj.envelope.audioBufferSourceNode.playbackRate.value = Math.pow(2, currentPitchBend / 12);
+        }
+      });
+    } else if (cmd === 0xB0 && note === 1 && enableModulation) {
+      if (modFilter) {
+        const freq = 20000 - (velocity / 127) * 19700;
+        modFilter.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+      }
+    }
+  }
+
+  const midiDevicesList = document.getElementById('midi-devices-list');
+
+  function connectInputs(access) {
+    let count = 0;
+    const names = [];
+    for (const input of access.inputs.values()) {
+      input.onmidimessage = onMIDIMessage;
+      count++;
+      if (input.name) names.push(input.name);
+    }
+    if (count > 0) {
+      statusEl.className = 'connected';
+      statusText.textContent = count + ' MIDI device' + (count > 1 ? 's' : '') + ' connected';
+      midiDevicesList.textContent = names.join(', ');
+    } else {
+      statusEl.className = '';
+      statusText.textContent = 'no MIDI devices found';
+      midiDevicesList.textContent = 'None';
+    }
+  }
+
+  if (navigator.requestMIDIAccess) {
+    navigator.requestMIDIAccess().then((access) => {
+      connectInputs(access);
+      access.onstatechange = () => connectInputs(access);
+    }).catch(() => {
+      statusEl.className = 'error';
+      statusText.textContent = 'MIDI access denied';
+    });
+  } else {
+    statusEl.className = 'error';
+    statusText.textContent = 'MIDI not supported in this browser';
+  }
+
+  // ── Load default instrument on first interaction ───
+  const startOverlay = document.getElementById('start-overlay');
+  let firstInteraction = false;
+  function onFirstInteraction() {
+    if (firstInteraction) return;
+    firstInteraction = true;
+    if (startOverlay) {
+      startOverlay.style.opacity = '0';
+      setTimeout(() => startOverlay.remove(), 500);
+    }
+    loadInstrument(0);
+    document.removeEventListener('mousedown', onFirstInteraction);
+    document.removeEventListener('touchstart', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+  }
+  document.addEventListener('mousedown', onFirstInteraction);
+  document.addEventListener('touchstart', onFirstInteraction);
+  document.addEventListener('keydown', onFirstInteraction);
+
+  try {
+    ensureAudio();
+    if (audioCtx.state === 'running') {
+      firstInteraction = true;
+      if (startOverlay) startOverlay.remove();
+      loadInstrument(0);
+    }
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>
