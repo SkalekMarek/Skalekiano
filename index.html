@@ -695,8 +695,9 @@
         --white-key-width: 24px;
         --white-key-height: 140px;
         --black-key-width: 14px;
-        --black-key-height: 85px;
+        --black-key-height: 70px;
       }
+      
       header { padding: 1rem 0; }
       header h1 { font-size: 1.2rem; }
       #header-left-controls {
@@ -711,6 +712,7 @@
         left: -80px;
       }
       #midi-status { display: none; }
+      #chord-display { display: none !important; }
       
       #controls { padding: 10px 5px; }
       #inst-row-wrap { max-height: 140px; overflow-y: auto; padding-right: 5px; }
@@ -728,6 +730,19 @@
       #piano-wrapper::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
       #piano-wrapper::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
       #piano { height: auto; }
+    }
+
+    @media (max-width: 899px) and (orientation: portrait) {
+      body {
+        transform: rotate(90deg);
+        transform-origin: left top;
+        width: 100vh;
+        height: 100vw;
+        position: fixed;
+        top: 0;
+        left: 100%;
+        overflow-x: hidden;
+      }
     }
   </style>
 </head>
@@ -1685,7 +1700,29 @@
     stopNote(midi);
   }
 
-  piano.addEventListener('mousedown', handleDown);
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(0);
+      osc.stop(0.01);
+    } catch(e) {}
+    audioUnlocked = true;
+  }
+
+  piano.addEventListener('mousedown', (e) => {
+    unlockAudio();
+    handleDown(e);
+  });
   piano.addEventListener('mouseup', handleUp);
   piano.addEventListener('mouseover', handleEnter);
   piano.addEventListener('mouseout', handleLeave);
@@ -1693,6 +1730,7 @@
 
   const activeTouches = {};
   piano.addEventListener('touchstart', (e) => {
+    unlockAudio();
     onFirstInteraction();
     e.preventDefault();
     for (const t of e.changedTouches) {
