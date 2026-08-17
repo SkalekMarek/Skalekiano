@@ -126,21 +126,8 @@
       gap: 6px;
       margin-top: 0.4rem;
       padding: 4px 12px;
-      border-radius: 20px;
-      background: rgba(0,0,0,0.04);
-      font-size: 0.72rem;
-      color: var(--text-muted);
-    }
-
-    #midi-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #c4a262;
-      flex-shrink: 0;
-    }
-
-    #midi-status.connected #midi-dot { background: #5a9a5a; }
-    #midi-status.error #midi-dot { background: #b05050; }
+    .mobile-only { display: none !important; }
+    @media (max-width: 850px) { .mobile-only { display: block !important; } .desktop-only { display: none !important; } }
 
     /* ── Instrument selector ──────────────────────── */
     #controls {
@@ -690,12 +677,17 @@
       transition: opacity 0.5s;
     }
 
-    @media (max-width: 600px) {
+    .mobile-only { display: none !important; }
+
+    @media (max-width: 850px) {
+      .desktop-only { display: none !important; }
+      .mobile-only { display: flex !important; }
+      
       :root {
-        --white-key-width: 24px;
-        --white-key-height: 140px;
-        --black-key-width: 14px;
-        --black-key-height: 70px;
+        --white-key-width: 32px;
+        --white-key-height: 150px;
+        --black-key-width: 20px;
+        --black-key-height: 85px;
       }
       
       header { padding: 1rem 0; }
@@ -711,38 +703,45 @@
         top: 30px;
         left: -80px;
       }
-      #midi-status { display: none; }
-      #chord-display { display: none !important; }
       
-      #controls { padding: 10px 5px; }
-      #inst-row-wrap { max-height: 140px; overflow-y: auto; padding-right: 5px; }
-      #inst-row-wrap::-webkit-scrollbar { width: 4px; }
-      #inst-row-wrap::-webkit-scrollbar-track { background: transparent; }
-      #inst-row-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-      .cat-tab { font-size: 0.6rem; padding: 5px 8px; }
-      .inst-pill { font-size: 0.7rem; padding: 6px 12px; }
+      #controls { padding: 10px 5px; margin-bottom: 10px; }
+      #mobile-controls {
+        width: 100%;
+        justify-content: center;
+        gap: 10px;
+        padding: 0 10px;
+      }
+      #mobile-controls select {
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+        flex: 1;
+        max-width: 180px;
+      }
       
       #piano-wrapper {
-        justify-content: flex-start;
-        -webkit-overflow-scrolling: touch;
+        justify-content: center;
+        overflow: hidden !important;
+        padding-bottom: 0;
+        gap: 5px;
       }
-      #piano-wrapper::-webkit-scrollbar { height: 8px; }
-      #piano-wrapper::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
-      #piano-wrapper::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+      .octave-btn {
+        background: transparent;
+        border: none;
+        font-size: 2rem;
+        color: var(--text-muted);
+        padding: 0 10px;
+        cursor: pointer;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+      }
+      .octave-btn:active { color: var(--text); }
       #piano { height: auto; }
-    }
-
-    @media (max-width: 899px) and (orientation: portrait) {
-      body {
-        transform: rotate(90deg);
-        transform-origin: left top;
-        width: 100vh;
-        height: 100vw;
-        position: fixed;
-        top: 0;
-        left: 100%;
-        overflow-x: hidden;
-      }
     }
   </style>
 </head>
@@ -786,21 +785,28 @@
       </div>
     </div>
     <h1>Skalekiano</h1>
-    <div id="midi-status"><span id="midi-dot"></span><span id="midi-text">looking for MIDI devices…</span></div>
   </header>
 
   <div id="controls">
-    <div id="cat-row"></div>
-    <div id="inst-divider"></div>
-    <div id="inst-row-wrap"><div id="inst-row"></div></div>
+    <div id="desktop-controls" class="desktop-only">
+      <div id="cat-row"></div>
+      <div id="inst-divider"></div>
+      <div id="inst-row-wrap"><div id="inst-row"></div></div>
+    </div>
+    <div id="mobile-controls" class="mobile-only">
+      <select id="mobile-cat-select"></select>
+      <select id="mobile-inst-select"></select>
+    </div>
     <span id="load-status">loading…</span>
   </div>
 
   <div id="piano-wrapper">
+    <button id="octave-down" class="mobile-only octave-btn">&lt;</button>
     <div style="display: flex; flex-direction: column; align-items: center;">
       <div id="piano"></div>
-      <div id="chord-display" class="size-medium"></div>
+      <div id="chord-display" class="size-medium desktop-only"></div>
     </div>
+    <button id="octave-up" class="mobile-only octave-btn">&gt;</button>
   </div>
 
   <div id="settings-overlay" class="hidden">
@@ -1200,6 +1206,8 @@
   // ── UI: category tabs + instrument pills ───────────
   const catRow = document.getElementById('cat-row');
   const instRow = document.getElementById('inst-row');
+  const mobileCatSelect = document.getElementById('mobile-cat-select');
+  const mobileInstSelect = document.getElementById('mobile-inst-select');
 
   function selectInstrument(program) {
     instRow.querySelectorAll('.inst-pill').forEach(p => p.classList.remove('active'));
@@ -1208,6 +1216,7 @@
       target.classList.add('active');
       target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
     }
+    if (mobileInstSelect) mobileInstSelect.value = program;
     Object.keys(activeNotes).forEach(m => stopNote(Number(m)));
     loadInstrument(program);
   }
@@ -1215,6 +1224,8 @@
   function populateInstruments(catIndex) {
     const cat = GM_CATEGORIES[catIndex];
     instRow.innerHTML = '';
+    if (mobileInstSelect) mobileInstSelect.innerHTML = '';
+    
     for (let p = cat.from; p <= cat.to; p++) {
       const btn = document.createElement('button');
       btn.className = 'inst-pill';
@@ -1222,6 +1233,13 @@
       btn.textContent = GM_NAMES[p];
       btn.addEventListener('click', () => selectInstrument(p));
       instRow.appendChild(btn);
+      
+      if (mobileInstSelect) {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = GM_NAMES[p];
+        mobileInstSelect.appendChild(opt);
+      }
     }
   }
 
@@ -1229,6 +1247,7 @@
     catRow.querySelectorAll('.cat-tab').forEach((t, i) =>
       t.classList.toggle('active', i === catIndex)
     );
+    if (mobileCatSelect) mobileCatSelect.value = catIndex;
     populateInstruments(catIndex);
     selectInstrument(GM_CATEGORIES[catIndex].from);
   }
@@ -1239,7 +1258,17 @@
     btn.textContent = cat.name;
     btn.addEventListener('click', () => selectCategory(i));
     catRow.appendChild(btn);
+    
+    if (mobileCatSelect) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = cat.name;
+      mobileCatSelect.appendChild(opt);
+    }
   });
+
+  if (mobileCatSelect) mobileCatSelect.addEventListener('change', (e) => selectCategory(Number(e.target.value)));
+  if (mobileInstSelect) mobileInstSelect.addEventListener('change', (e) => selectInstrument(Number(e.target.value)));
 
   // init: Piano -> Acoustic Grand Piano
   selectCategory(0);
@@ -1255,6 +1284,7 @@
   let keyElements = {};
   const whiteWidth = 23;
 
+  let octaveOffset = 0;
   function renderPiano(numKeys) {
     piano.innerHTML = '';
     keyElements = {};
@@ -1264,6 +1294,11 @@
     if (numKeys === 25) { startMidi = 48; endMidi = 72; }
     else if (numKeys === 49) { startMidi = 36; endMidi = 84; }
     else if (numKeys === 61) { startMidi = 36; endMidi = 96; }
+
+    if (window.innerWidth <= 850) {
+      startMidi = Math.max(21, Math.min(84, 48 + (octaveOffset * 12)));
+      endMidi = Math.min(108, startMidi + 24);
+    }
 
     let whiteIndex = 0;
     
@@ -1291,6 +1326,18 @@
   }
 
   renderPiano(88);
+
+  document.getElementById('octave-down').addEventListener('click', () => {
+    octaveOffset--;
+    renderPiano(Number(document.getElementById('keys-shown-select').value));
+  });
+  document.getElementById('octave-up').addEventListener('click', () => {
+    octaveOffset++;
+    renderPiano(Number(document.getElementById('keys-shown-select').value));
+  });
+  window.addEventListener('resize', () => {
+    renderPiano(Number(document.getElementById('keys-shown-select').value));
+  });
 
   // ── Settings UI ────────────────────────────────────
   const settingsBtn = document.getElementById('settings-btn');
@@ -1827,12 +1874,12 @@
       if (input.name) names.push(input.name);
     }
     if (count > 0) {
-      statusEl.className = 'connected';
-      statusText.textContent = count + ' MIDI device' + (count > 1 ? 's' : '') + ' connected';
+      if (statusEl) statusEl.className = 'connected';
+      if (statusText) statusText.textContent = count + ' MIDI device' + (count > 1 ? 's' : '') + ' connected';
       midiDevicesList.textContent = names.join(', ');
     } else {
-      statusEl.className = '';
-      statusText.textContent = 'no MIDI devices found';
+      if (statusEl) statusEl.className = '';
+      if (statusText) statusText.textContent = 'no MIDI devices found';
       midiDevicesList.textContent = 'None';
     }
   }
@@ -1842,12 +1889,12 @@
       connectInputs(access);
       access.onstatechange = () => connectInputs(access);
     }).catch(() => {
-      statusEl.className = 'error';
-      statusText.textContent = 'MIDI access denied';
+      if (statusEl) statusEl.className = 'error';
+      if (statusText) statusText.textContent = 'MIDI access denied';
     });
   } else {
-    statusEl.className = 'error';
-    statusText.textContent = 'MIDI not supported in this browser';
+    if (statusEl) statusEl.className = 'error';
+    if (statusText) statusText.textContent = 'MIDI not supported in this browser';
   }
 
   // ── Load default instrument on first interaction ───
