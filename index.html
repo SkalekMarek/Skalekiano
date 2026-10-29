@@ -1360,10 +1360,6 @@
         </div>
       </div>
       <div id="flow-top-right">
-        <button id="flow-reverse-toggle" class="flow-pill-btn flow-toggle-btn" title="Toggle melody playback direction (Falling vs Reverse)" aria-label="Playback Direction">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-          <span id="flow-direction-text">Falling</span>
-        </button>
         <button id="flow-record-btn" class="flow-pill-btn flow-record-btn" title="Record Piano" aria-label="Record">
           <span class="rec-dot"></span>
           <span id="flow-record-text">Record</span>
@@ -2660,8 +2656,6 @@
   const flowPlayBtn = document.getElementById('flow-play-btn');
   const flowRecordText = document.getElementById('flow-record-text');
   const flowPlayText = document.getElementById('flow-play-text');
-  const flowReverseToggle = document.getElementById('flow-reverse-toggle');
-  const flowDirectionText = document.getElementById('flow-direction-text');
   const flowModeBtn = document.getElementById('flow-mode-btn');
 
   let flowWhiteKeyPositions = [];
@@ -2696,7 +2690,6 @@
 
   let isPlaying = false;
   let playbackStartTime = 0;
-  let playbackReverse = false;
   let activePlaybackList = [];
   let animationFrameId = null;
 
@@ -2970,19 +2963,13 @@
     }
   }
 
-  // Playback logic (Falling Notes)
+  // Playback logic (Falling Notes in forward chronological order 1, 2, 3...)
   flowPlayBtn.addEventListener('click', () => {
     if (isPlaying) {
       stopPlayback();
     } else {
       startPlayback();
     }
-  });
-
-  flowReverseToggle.addEventListener('click', () => {
-    playbackReverse = !playbackReverse;
-    flowDirectionText.textContent = playbackReverse ? 'Reverse' : 'Falling';
-    flowReverseToggle.classList.toggle('active', playbackReverse);
   });
 
   function startPlayback() {
@@ -2996,26 +2983,19 @@
     flowPlayText.textContent = 'Stop';
     flowRecordBtn.disabled = true;
 
-    if (playbackReverse) {
-      const maxT = recordedDuration;
-      activePlaybackList = recordedEvents.map(ev => ({
-        midi: ev.midi,
-        velocity: ev.velocity,
-        playbackStartTime: Math.max(0, maxT - (ev.endTime || (ev.startTime + ev.duration))),
-        duration: ev.duration,
-        hasStarted: false,
-        hasFinished: false
-      }));
-    } else {
-      activePlaybackList = recordedEvents.map(ev => ({
-        midi: ev.midi,
-        velocity: ev.velocity,
-        playbackStartTime: ev.startTime,
-        duration: ev.duration,
-        hasStarted: false,
-        hasFinished: false
-      }));
-    }
+    // Sort events strictly by start time so notes play in forward order 1, 2, 3, 4, 5
+    const sorted = [...recordedEvents].sort((a, b) => a.startTime - b.startTime);
+    const firstStartTime = sorted[0].startTime;
+
+    activePlaybackList = sorted.map(ev => ({
+      midi: ev.midi,
+      velocity: ev.velocity,
+      playbackStartTime: Math.max(0, ev.startTime - firstStartTime),
+      duration: ev.duration,
+      hasStarted: false,
+      hasFinished: false
+    }));
+    window._flowPlaybackList = activePlaybackList;
   }
 
   function stopPlayback() {
