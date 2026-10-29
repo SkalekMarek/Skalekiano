@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Skalekiano</title>
   <link rel="icon" type="image/png" href="icon.png">
-  <meta name="description" content="Skalekiano — 128 General MIDI instruments on an 88-key piano in your browser.">
+  <meta name="description" content="Skalekiano — 128 General MIDI instruments and a 24-stop Skalekorgan pipe organ on an 88-key MIDI keyboard.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
@@ -692,9 +692,6 @@
       transition: opacity 0.5s;
     }
 
-    @media (max-width: 600px) {
-    .mobile-only { display: none !important; }
-
     @media (max-width: 850px) {
       .desktop-only { display: none !important; }
       .mobile-only { display: flex !important; }
@@ -766,16 +763,7 @@
       #piano { height: auto; }
     }
 
-    @media (max-width: 899px) and (orientation: portrait) {
-      body {
-        transform: rotate(90deg);
-        transform-origin: left top;
-        width: 100vh;
-        height: 100vw;
-        position: fixed;
-        top: 0;
-        left: 100%;
-        overflow-x: hidden;
+    @media (max-width: 850px) {
       .octave-btn {
         background: transparent;
         border: none;
@@ -790,6 +778,392 @@
       .octave-btn:active { color: var(--text); }
       #piano { height: auto; }
     }
+
+    /* Skalekorgan: bare walnut surround and ivory drawknobs. */
+    body.organ-mode {
+      --bg: #89512a;
+      --text: #fff2dd;
+      --text-muted: #e3c3a4;
+      --border: #b28159;
+      --border-hover: #d1ad88;
+      --pill-bg: #faf6ef;
+      --pill-bg-active: #2c1f18;
+      --pill-text-active: #f4efe8;
+      --modal-bg: #754321;
+      --piano-bg: #221711;
+      --white-key-grad-top: #fffaf0;
+      --white-key-grad-mid: #f5efdf;
+      --white-key-grad-bot: #ddd0bc;
+      --black-key-grad-top: #2e2118;
+      --black-key-grad-mid: #1d150f;
+      --black-key-grad-bot: #120c08;
+    }
+    [hidden] { display: none !important; }
+    #header-right-controls {
+      position: absolute; top: 1.8rem; right: 1.8rem;
+      display: flex; padding: 3px; border: 1px solid var(--border);
+      border-radius: 24px; background: var(--bg);
+    }
+    .mode-button {
+      border: 0; border-radius: 20px; padding: 8px 13px;
+      font: 500 0.72rem 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; cursor: pointer; transition: background .25s, color .25s;
+    }
+    .mode-button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #7a5230; outline-offset: 3px;
+    }
+    #instrument-layout { display: flex; flex: 1; width: 100%; }
+    body.organ-mode #instrument-layout {
+      display: grid; grid-template-columns: 230px minmax(0, 1fr) 230px;
+      gap: 24px; align-items: center; padding: 24px 28px 64px;
+    }
+    body.organ-mode #piano-wrapper { padding: 0; overflow: visible; min-width: 0; }
+    #keyboard-center { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+    .organ-stop-bank { display: grid; grid-template-columns: repeat(3, 70px); gap: 14px 10px; justify-content: center; }
+    .organ-stop {
+      width: 70px; height: 70px; border: 4px solid #412716; border-radius: 50%;
+      background: radial-gradient(circle at 35% 25%, #fff9ec, #e8dac0 78%, #c8b394);
+      color: #38271b; position: relative;
+      box-shadow: 0 3px 0 #50301b, 0 5px 7px #2b170d40, inset 0 0 0 1px #fffcf1;
+      font: 600 .61rem 'Inter', sans-serif; line-height: 1.3; padding: 8px 3px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      transition: transform .18s, box-shadow .18s, border-color .18s;
+    }
+    .organ-stop:hover { border-color: #604026; }
+    .organ-stop[aria-pressed="true"] {
+      transform: translateY(-3px); border-color: #c3975e;
+      box-shadow: 0 6px 0 #50301b, 0 9px 10px #2b170d55, inset 0 0 0 1px #fffcf1;
+    }
+    .organ-stop[aria-pressed="true"]::after {
+      content: ''; position: absolute; bottom: 6px; left: calc(50% - 2px);
+      width: 4px; height: 4px; border-radius: 50%; background: #a3652e;
+    }
+    body.organ-mode .key-white.pedal-key {
+      background: linear-gradient(#2e2118, #1d150f 88%, #120c08);
+      border-color: #100a06; box-shadow: inset 1px 0 0 #ffffff0c;
+    }
+    body.organ-mode .key-black.pedal-key {
+      background: linear-gradient(#fffaf0, #f5efdf 60%, #ddd0bc);
+      box-shadow: -1px 0 0 #0003, 1px 0 0 #0003, 0 2px 4px #0005;
+    }
+    body.organ-mode .key-white.active, body.organ-mode .key-white.held {
+      background: linear-gradient(#eddbba, #dbc19b 88%, #c2a076); box-shadow: inset 0 -3px 0 #7a5230;
+    }
+    body.organ-mode .key-black.active, body.organ-mode .key-black.held {
+      background: linear-gradient(#7a5230, #493020 60%, #2c1f18); box-shadow: inset 0 -3px 0 #bb8854;
+    }
+    body.organ-mode .key-white.pedal-key.active, body.organ-mode .key-white.pedal-key.held {
+      background: linear-gradient(#7a5230, #493020 88%, #2c1f18); box-shadow: inset 0 -3px 0 #bb8854;
+    }
+    body.organ-mode .key-black.pedal-key.active, body.organ-mode .key-black.pedal-key.held {
+      background: linear-gradient(#eddbba, #dbc19b 60%, #c2a076); box-shadow: inset 0 -3px 0 #7a5230;
+    }
+    body.organ-mode #keyboard-center { position: relative; }
+    body.organ-mode #chord-display { position: absolute; top: 100%; left: 0; right: 0; }
+    #piano { touch-action: none; }
+    @media (min-width: 851px) and (max-width: 1150px) {
+      body.organ-mode #instrument-layout { grid-template-columns: 150px minmax(0, 1fr) 150px; gap: 18px; padding-right: 18px; padding-left: 18px; }
+      .organ-stop-bank { grid-template-columns: repeat(2, 70px); }
+    }
+    @media (max-width: 1100px) and (min-width: 851px) {
+      #header-left-controls { left: 1rem; gap: .6rem; }
+      #header-right-controls { right: 1rem; }
+      header h1 { font-size: 1.8rem; }
+      #piano-wrapper { justify-content: flex-start; padding-left: 1rem; padding-right: 1rem; }
+    }
+    @media (max-width: 850px) {
+      #header-right-controls { position: static; width: fit-content; margin: 12px auto 0; }
+      body.organ-mode #instrument-layout { grid-template-columns: 58px minmax(0, 1fr) 58px; gap: 10px; padding: 20px 12px 32px; }
+      .organ-stop-bank {
+        grid-template-columns: 54px; gap: 12px; align-content: start;
+        max-height: min(560px, 65dvh); overflow-y: auto; overflow-x: hidden;
+        padding: 6px 0 12px; scrollbar-width: none; overscroll-behavior: contain;
+        mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 12px), transparent);
+      }
+      .organ-stop-bank::-webkit-scrollbar { display: none; }
+      .organ-stop { width: 54px; height: 54px; border-width: 3px; font-size: .51rem; padding: 6px 2px; }
+      body.organ-mode .octave-btn { font-size: 1.2rem; padding: 0 4px; }
+      body.organ-mode #piano-wrapper { gap: 4px; }
+      #piano-wrapper { min-height: 210px; }
+      .key-black { width: var(--black-key-width); height: var(--black-key-height); }
+      .key-black.active { height: calc(var(--black-key-height) - 2px); }
+      #settings-modal { max-height: 85vh; overflow-y: auto; }
+      .settings-sidebar { width: 130px; padding: 1rem .5rem; }
+      .settings-content { padding: 1rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+    /* ── Header Flow / Visualizer button ───────────────── */
+    .header-action-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 5px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      outline: none;
+      text-decoration: none;
+    }
+    .header-action-pill:hover {
+      background: var(--pill-bg-hover);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+    .header-action-pill svg {
+      flex-shrink: 0;
+    }
+
+    /* ── Fullscreen Flow / Waterfall Visualizer Mode ────── */
+    :root {
+      --flow-piano-h: 170px;
+    }
+    @media (max-width: 768px) {
+      :root {
+        --flow-piano-h: 135px;
+      }
+    }
+    body.flow-active {
+      overflow: hidden !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body.flow-active > header,
+    body.flow-active > #controls,
+    body.flow-active > #instrument-layout,
+    body.flow-active > #start-overlay,
+    body.flow-active > #settings-overlay {
+      display: none !important;
+    }
+    body.flow-active #flow-view {
+      display: block !important;
+    }
+
+    #flow-view {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: var(--bg);
+      z-index: 1000;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    #flow-view.hidden {
+      display: none !important;
+    }
+
+    #flow-top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      z-index: 30;
+      pointer-events: none;
+    }
+    #flow-top-left, #flow-top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .flow-sound-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .flow-pill-btn, .flow-pill-select {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 13px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      outline: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .flow-pill-btn:hover, .flow-pill-select:hover {
+      border-color: var(--border-hover);
+      background: var(--pill-bg-hover);
+    }
+    .flow-pill-btn:active {
+      transform: scale(0.97);
+    }
+    .flow-pill-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      pointer-events: none;
+    }
+    .flow-pill-select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 26px;
+      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238a8279%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E');
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      background-size: 10px;
+      max-width: 190px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    body.dark-mode .flow-pill-select {
+      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a39e96%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E');
+    }
+    .flow-record-btn .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c53030;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .flow-record-btn.recording {
+      border-color: #c53030;
+      color: #c53030;
+      background: rgba(197, 48, 48, 0.08);
+    }
+    .flow-record-btn.recording .rec-dot {
+      animation: flowRecPulse 0.9s infinite alternate;
+    }
+    @keyframes flowRecPulse {
+      0% { transform: scale(0.9); opacity: 1; }
+      100% { transform: scale(1.35); opacity: 0.35; }
+    }
+    .flow-play-btn.playing {
+      border-color: #2a9d8f;
+      color: #2a9d8f;
+      background: rgba(42, 157, 143, 0.08);
+    }
+    .flow-toggle-btn.active {
+      border-color: #c4a262;
+      color: var(--text);
+      background: rgba(196, 162, 98, 0.12);
+    }
+
+    #flow-canvas-wrap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      bottom: var(--flow-piano-h);
+      z-index: 10;
+      pointer-events: none;
+    }
+    #flow-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #flow-piano-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: var(--flow-piano-h);
+      z-index: 20;
+      background: var(--piano-bg);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.16);
+      touch-action: none;
+      overflow: hidden;
+    }
+    #flow-piano {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .flow-key {
+      position: absolute;
+      top: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      cursor: pointer;
+    }
+    .flow-key-white {
+      height: 100%;
+      background: linear-gradient(180deg, var(--white-key-grad-top) 0%, var(--white-key-grad-mid) 82%, var(--white-key-grad-bot) 100%);
+      border-right: 1px solid rgba(0,0,0,0.12);
+      border-left: 1px solid rgba(255,255,255,0.4);
+      border-bottom: 2px solid rgba(0,0,0,0.2);
+      border-radius: 0 0 4px 4px;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+      z-index: 1;
+      transition: background 0.05s ease;
+    }
+    .flow-key-white.active {
+      background: linear-gradient(180deg, var(--white-key-active-top) 0%, var(--white-key-active-mid) 85%, var(--white-key-active-bot) 100%) !important;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.18) !important;
+      border-bottom-width: 1px;
+    }
+    .flow-key-black {
+      height: 62%;
+      background: linear-gradient(180deg, var(--black-key-grad-top) 0%, var(--black-key-grad-mid) 75%, var(--black-key-grad-bot) 100%);
+      border-radius: 0 0 3px 3px;
+      box-shadow: -1px 0 2px rgba(0,0,0,0.3), 1px 0 2px rgba(0,0,0,0.3), 0 3px 6px rgba(0,0,0,0.45);
+      z-index: 2;
+      transition: background 0.05s ease;
+    }
+    .flow-key-black.active {
+      background: linear-gradient(180deg, var(--black-key-active-top) 0%, var(--black-key-active-mid) 75%, var(--black-key-active-bot) 100%) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+      height: calc(62% - 2px);
+    }
+    @media (max-width: 768px) {
+      #flow-top-bar {
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .flow-pill-select {
+        max-width: 115px;
+        font-size: 0.68rem;
+        padding: 4px 6px;
+        padding-right: 18px;
+      }
+      .flow-pill-btn {
+        font-size: 0.68rem;
+        padding: 4px 8px;
+        gap: 4px;
+      }
+      .header-action-pill span {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -800,6 +1174,16 @@
 
   <header>
     <div id="header-left-controls">
+      <button id="flow-mode-btn" class="header-action-pill" title="Waterfall Piano Visualizer" aria-label="Waterfall Visualizer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="16" width="18" height="5" rx="1.5"></rect>
+          <path d="M7 16V9"></path>
+          <path d="M11 16V4"></path>
+          <path d="M15 16V7"></path>
+          <path d="M19 16V11"></path>
+        </svg>
+        <span>Visualizer</span>
+      </button>
       <div id="settings-btn" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </div>
@@ -833,12 +1217,13 @@
     </div>
     <h1>Skalekiano</h1>
     <div id="midi-status"><span id="midi-dot"></span><span id="midi-text">looking for MIDI devices…</span></div>
+    <div id="header-right-controls" role="group" aria-label="Instrument mode">
+      <button class="mode-button" data-mode="piano" aria-pressed="true">Skalekiano</button>
+      <button class="mode-button" data-mode="organ" aria-pressed="false">Skalekorgan</button>
+    </div>
   </header>
 
   <div id="controls">
-    <div id="cat-row"></div>
-    <div id="inst-divider"></div>
-    <div id="inst-row-wrap"><div id="inst-row"></div></div>
     <div id="desktop-controls" class="desktop-only">
       <div id="cat-row"></div>
       <div id="inst-divider"></div>
@@ -851,14 +1236,17 @@
     <span id="load-status">loading…</span>
   </div>
 
-  <div id="piano-wrapper">
-    <button id="octave-down" class="mobile-only octave-btn">&lt;</button>
-    <div style="display: flex; flex-direction: column; align-items: center;">
-      <div id="piano"></div>
-      <div id="chord-display" class="size-medium"></div>
-      <div id="chord-display" class="size-medium desktop-only"></div>
+  <div id="instrument-layout">
+    <aside id="pedal-stops" class="organ-stop-bank" aria-label="Pedal stops" hidden></aside>
+    <div id="piano-wrapper">
+      <button id="octave-down" class="mobile-only octave-btn" aria-label="Previous octave">&lt;</button>
+      <div id="keyboard-center">
+        <div id="piano"></div>
+        <div id="chord-display" class="size-medium"></div>
+      </div>
+      <button id="octave-up" class="mobile-only octave-btn" aria-label="Next octave">&gt;</button>
     </div>
-    <button id="octave-up" class="mobile-only octave-btn">&gt;</button>
+    <aside id="manual-stops" class="organ-stop-bank" aria-label="Manual stops" hidden></aside>
   </div>
 
   <div id="settings-overlay" class="hidden">
@@ -887,11 +1275,11 @@
           </div>
           <div class="setting-row">
             <label>Show Sustain Pedal</label>
-            <button id="toggle-sustain-ui-btn">Off</button>
+            <button id="toggle-sustain-ui-btn">On</button>
           </div>
           <div class="setting-row">
             <label>Show Metronome</label>
-            <button id="toggle-metronome-ui-btn">Off</button>
+            <button id="toggle-metronome-ui-btn">On</button>
           </div>
         </div>
 
@@ -958,8 +1346,56 @@
     </div>
   </div>
 
+  <!-- ── Waterfall Visualizer View ───────────────────── -->
+  <div id="flow-view" class="hidden" aria-label="Waterfall Visualizer View">
+    <div id="flow-top-bar">
+      <div id="flow-top-left">
+        <button id="flow-back-btn" class="flow-pill-btn" title="Back to Classic Skalekiano" aria-label="Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Exit</span>
+        </button>
+        <div class="flow-sound-picker">
+          <select id="flow-cat-select" class="flow-pill-select" title="Sound Category" aria-label="Sound Category"></select>
+          <select id="flow-inst-select" class="flow-pill-select" title="Specific Instrument" aria-label="Specific Instrument"></select>
+        </div>
+      </div>
+      <div id="flow-top-right">
+        <button id="flow-reverse-toggle" class="flow-pill-btn flow-toggle-btn" title="Toggle melody playback direction (Falling vs Reverse)" aria-label="Playback Direction">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          <span id="flow-direction-text">Falling</span>
+        </button>
+        <button id="flow-record-btn" class="flow-pill-btn flow-record-btn" title="Record Piano" aria-label="Record">
+          <span class="rec-dot"></span>
+          <span id="flow-record-text">Record</span>
+        </button>
+        <button id="flow-play-btn" class="flow-pill-btn flow-play-btn" title="Play Recording (Notes Fall Down)" aria-label="Play" disabled>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="flow-play-text">Play</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="flow-canvas-wrap">
+      <canvas id="flow-canvas"></canvas>
+    </div>
+
+    <div id="flow-piano-container">
+      <div id="flow-piano"></div>
+    </div>
+  </div>
+
 <script>
 (() => {
+  // ── Waterfall / Flow Visualizer Declarations ───────
+  let isFlowActive = false;
+  let flowKeyElements = {};
+  let activeFloatingNotes = new Map();
+  let allFloatingNotes = [];
+  let onFlowNotePlayed = null;
+  let onFlowNoteStopped = null;
+  let onFlowAllNotesOff = null;
+  let syncFlowSoundPicker = null;
+
   // ── GM instrument catalog ──────────────────────────
   const GM_CATEGORIES = [
     { name: 'Piano', from: 0, to: 7 },
@@ -1021,6 +1457,7 @@
   let currentProgram = 0;
   let currentTone = null;
   let modFilter = null;
+  let currentMode = 'piano';
 
   function ensureAudio() {
     if (!audioCtx) {
@@ -1036,9 +1473,10 @@
       if (selectedSink && selectedSink !== 'default' && typeof audioCtx.setSinkId !== 'undefined') {
         audioCtx.setSinkId(selectedSink).catch(console.error);
       }
-      player = new WebAudioFontPlayer();
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
+    // The organ also works when the external GM player is unavailable.
+    if (!player && typeof WebAudioFontPlayer !== 'undefined') player = new WebAudioFontPlayer();
   }
 
   // ── Instrument loading ─────────────────────────────
@@ -1057,6 +1495,11 @@
   function loadInstrument(program) {
     ensureAudio();
     currentProgram = program;
+    if (!player) {
+      loadStatusEl.textContent = 'GM engine unavailable — Skalekorgan is still playable';
+      loadStatusEl.className = '';
+      return;
+    }
 
     // already cached and decoded
     if (instrumentCache[program]) {
@@ -1078,6 +1521,7 @@
     player.loader.startLoad(audioCtx, url, varName);
 
     // poll until THIS specific variable is fully decoded
+    const loadStarted = Date.now();
     function waitForVariable() {
       if (player.loader.loaded(varName)) {
         const tone = window[varName];
@@ -1088,8 +1532,11 @@
           loadStatusEl.textContent = 'ready';
           loadStatusEl.className = 'ready';
         }
-      } else {
+      } else if (Date.now() - loadStarted < 30000) {
         setTimeout(waitForVariable, 100);
+      } else if (currentProgram === program) {
+        loadStatusEl.textContent = 'Instrument unavailable — select an instrument to retry';
+        loadStatusEl.className = '';
       }
     }
     waitForVariable();
@@ -1102,19 +1549,235 @@
   let sustainValue = 0;
   let currentPitchBend = 0;
 
-  function playNote(midi, velocity = 100) {
+  // ── Pipe organ ─────────────────────────────────────
+  // Harmonic profiles are additive PeriodicWaves; mixture ranks get separate pipes.
+  const ORGAN_STOPS = [
+    { id: 'subbass', division: 'pedal', name: 'Subbass', pitch: "16′", ratio: .5, harmonics: [1, .035], level: .038, release: .12 },
+    { id: 'open-wood', division: 'pedal', name: 'Open Wood', pitch: "16′", ratio: .5, harmonics: [1, .32, .14, .07], level: .03, release: .11 },
+    { id: 'pedal-principal', division: 'pedal', name: 'Principal', pitch: "8′", ratio: 1, harmonics: [1, .48, .25, .13, .07], level: .028, release: .09 },
+    { id: 'trombone', division: 'pedal', name: 'Trombone', pitch: "16′", ratio: .5, harmonics: [1, .65, .43, .32, .23, .18, .13, .1], level: .025, release: .1 },
+    { id: 'contra-bass', division: 'pedal', name: 'Contra Bass', pitch: "32′", ratio: .25, harmonics: [1, .4, .22, .15, .08], level: .03, release: .12 },
+    { id: 'bass-flute', division: 'pedal', name: 'Bass Flute', pitch: "8′", ratio: 1, harmonics: [1, .04, .16, .025, .04], level: .029, release: .11 },
+    { id: 'choralbass', division: 'pedal', name: 'Choralbass', pitch: "4′", ratio: 2, harmonics: [1, .5, .3, .18, .09], level: .02, release: .08 },
+    { id: 'bassoon', division: 'pedal', name: 'Bassoon', pitch: "16′", ratio: .5, harmonics: [1, .32, .48, .21, .27, .13, .15, .08], level: .022, release: .09 },
+    { id: 'bourdon', division: 'manual', name: 'Bourdon', pitch: "16′", ratio: .5, harmonics: [1, .025, .19, .015, .045], level: .028, release: .1 },
+    { id: 'diapason', division: 'manual', name: 'Open Diapason', pitch: "8′", ratio: 1, harmonics: [1, .46, .28, .15, .08, .045], level: .027, release: .09 },
+    { id: 'chimney', division: 'manual', name: 'Chimney Flute', pitch: "8′", ratio: 1, harmonics: [1, .13, .23, .025, .06], level: .026, release: .1 },
+    { id: 'principal', division: 'manual', name: 'Principal', pitch: "4′", ratio: 2, harmonics: [1, .42, .23, .12, .055], level: .022, release: .08 },
+    { id: 'flute', division: 'manual', name: 'Flûte', pitch: "4′", ratio: 2, harmonics: [1, .045, .12, .02], level: .024, release: .1 },
+    { id: 'fifteenth', division: 'manual', name: 'Fifteenth', pitch: "2′", ratio: 4, harmonics: [1, .23, .1], level: .015, release: .07 },
+    { id: 'mixture', division: 'manual', name: 'Mixture', pitch: 'IV', ranks: [1.5, 2, 3, 4], harmonics: [1, .24, .08], level: .01, release: .06 },
+    { id: 'trumpet', division: 'manual', name: 'Trumpet', pitch: "8′", ratio: 1, harmonics: [1, .72, .5, .36, .25, .18, .13, .09], level: .024, release: .05 },
+    { id: 'gamba', division: 'manual', name: 'Gamba', pitch: "8′", ratio: 1, harmonics: [1, .65, .56, .42, .33, .25, .18, .13, .09], level: .02, release: .11 },
+    { id: 'celeste', division: 'manual', name: 'Celeste', pitch: "8′", ranks: [1, 1], detunes: [-3.5, 3.5], harmonics: [1, .22, .35, .21, .14, .09], level: .013, release: .12 },
+    { id: 'harmonic-flute', division: 'manual', name: 'Harmonic Flute', pitch: "8′", ratio: 1, harmonics: [1, .38, .05, .11, .02, .025], level: .025, release: .1 },
+    { id: 'piccolo', division: 'manual', name: 'Piccolo', pitch: "1′", ratio: 8, harmonics: [1, .08, .035], level: .011, release: .06 },
+    { id: 'nazard', division: 'manual', name: 'Nazard', pitch: "2⅔′", ratio: 3, harmonics: [1, .06, .16, .02], level: .019, release: .09 },
+    { id: 'tierce', division: 'manual', name: 'Tierce', pitch: "1⅗′", ratio: 5, harmonics: [1, .04, .11], level: .015, release: .08 },
+    { id: 'oboe', division: 'manual', name: 'Oboe', pitch: "8′", ratio: 1, harmonics: [1, .18, .6, .12, .31, .09, .14, .04], level: .021, release: .08 },
+    { id: 'vox-humana', division: 'manual', name: 'Vox Humana', pitch: "8′", ratio: 1, harmonics: [1, .2, .45, .8, .65, .2, .07, .03], level: .018, release: .1 }
+  ];
+  const enabledStops = new Set(['subbass', 'diapason', 'chimney']);
+  const organNotes = new Map();
+  const heldSources = new Map();
+  let organAudio = null;
+
+  function ensureOrganAudio() {
     ensureAudio();
+    if (organAudio) return organAudio;
+    const input = audioCtx.createGain();
+    const warmth = audioCtx.createBiquadFilter();
+    warmth.type = 'lowpass'; warmth.frequency.value = 10500; warmth.Q.value = .45;
+    const dry = audioCtx.createGain(); dry.gain.value = .82;
+    const room = audioCtx.createConvolver();
+    const wet = audioCtx.createGain(); wet.gain.value = .25;
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -12; compressor.knee.value = 18;
+    compressor.ratio.value = 4; compressor.attack.value = .003; compressor.release.value = .2;
+    const master = audioCtx.createGain(); master.gain.value = masterVolume;
+    // A generated stereo cathedral impulse keeps this engine entirely self-contained.
+    const length = Math.ceil(audioCtx.sampleRate * 2.8);
+    const impulse = audioCtx.createBuffer(2, length, audioCtx.sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const samples = impulse.getChannelData(channel);
+      let smoothed = 0;
+      for (let i = 0; i < length; i++) {
+        const seconds = i / audioCtx.sampleRate;
+        smoothed = smoothed * .55 + (Math.random() * 2 - 1) * .45;
+        samples[i] = seconds < .025 ? 0 : smoothed * Math.exp(-seconds * 2.6);
+      }
+      for (const delay of [.061, .097, .149]) samples[Math.floor((delay + channel * .007) * audioCtx.sampleRate)] += .3;
+    }
+    room.buffer = impulse;
+    input.connect(warmth); warmth.connect(dry); warmth.connect(room);
+    dry.connect(compressor); room.connect(wet); wet.connect(compressor);
+    compressor.connect(master); master.connect(audioCtx.destination);
+    const waves = new Map(ORGAN_STOPS.map(stop => {
+      const real = new Float32Array(stop.harmonics.length + 1);
+      const imaginary = new Float32Array([0, ...stop.harmonics]);
+      return [stop.id, audioCtx.createPeriodicWave(real, imaginary)];
+    }));
+    organAudio = { input, master, waves };
+    return organAudio;
+  }
+
+  function disposeOrganVoice(voice) {
+    if (voice.released && voice.pipes.size === 0) voice.gainNode.disconnect();
+  }
+
+  const ORGAN_FADE_STEPS = 64;
+  function organFadeShape(position) {
+    return position * position * (3 - 2 * position);
+  }
+
+  function organEnvelopeValue(layer, time) {
+    const envelope = layer.envelope;
+    if (!envelope) return 0;
+    const position = Math.max(0, Math.min(1, (time - envelope.start) / envelope.duration));
+    // Match the interpolation of the scheduled ramps, including mid-attack note-offs.
+    const step = position * ORGAN_FADE_STEPS;
+    const lower = Math.floor(step);
+    const upper = Math.min(ORGAN_FADE_STEPS, lower + 1);
+    const shape = organFadeShape(lower / ORGAN_FADE_STEPS) + (step - lower) *
+      (organFadeShape(upper / ORGAN_FADE_STEPS) - organFadeShape(lower / ORGAN_FADE_STEPS));
+    return envelope.from + (envelope.to - envelope.from) * shape;
+  }
+
+  function fadeOrganLayer(layer, target, time, duration) {
+    const from = organEnvelopeValue(layer, time);
+    const parameter = layer.gain.gain;
+    parameter.cancelScheduledValues(time);
+    if (layer.envelope) parameter.linearRampToValueAtTime(from, time);
+    else parameter.setValueAtTime(from, time);
+    layer.envelope = { from, to: target, start: time, duration };
+    // Zero slope at both ends avoids the sharp corners of a straight amplitude ramp.
+    for (let step = 1; step <= ORGAN_FADE_STEPS; step++) {
+      const position = step / ORGAN_FADE_STEPS;
+      parameter.linearRampToValueAtTime(from + (target - from) * organFadeShape(position), time + duration * position);
+    }
+  }
+
+  function releaseOrganLayer(voice, layer, fast = false) {
+    if (layer.released) return;
+    layer.released = true;
+    const now = audioCtx.currentTime;
+    const duration = fast ? .025 : layer.releaseDuration;
+    fadeOrganLayer(layer, 0, now, duration);
+    layer.oscillators.forEach(osc => osc.stop(now + duration + .005));
+  }
+
+  function addOrganLayer(voice, stop) {
+    const engine = ensureOrganAudio();
+    const gain = audioCtx.createGain();
+    const level = stop.level; // Pipe loudness comes from registration, not piano velocity.
+    // Give the audio thread time to receive the envelope before starting the oscillator.
+    const now = audioCtx.currentTime + .008;
+    const ratios = stop.ranks || [stop.ratio];
+    const baseFrequency = 440 * Math.pow(2, (voice.pitch - 69) / 12);
+    const lowestFrequency = baseFrequency * Math.min(...ratios);
+    const attack = Math.max(.02, Math.min(.06, .75 / lowestFrequency));
+    const releaseDuration = Math.max(stop.release, Math.min(.12, 1 / lowestFrequency));
+    const layer = { stop, gain, level, releaseDuration, oscillators: [], released: false, envelope: null };
+    // Set silence before connecting, then open the pipe with a rounded envelope.
+    gain.gain.setValueAtTime(0, now);
+    fadeOrganLayer(layer, level, now, attack);
+    gain.connect(voice.gainNode);
+    voice.layers.set(stop.id, layer); voice.pipes.add(layer);
+    ratios.forEach((ratio, rank) => {
+      // Omit ranks above Nyquist rather than folding them into audible aliases.
+      if (baseFrequency * ratio >= audioCtx.sampleRate / 2) return;
+      const osc = audioCtx.createOscillator();
+      osc.setPeriodicWave(engine.waves.get(stop.id));
+      osc.frequency.value = baseFrequency * ratio;
+      osc.detune.value = stop.detunes ? stop.detunes[rank] :
+        ((ORGAN_STOPS.indexOf(stop) % 5) - 2) * .65 + (rank - (ratios.length - 1) / 2) * .8;
+      osc.connect(gain);
+      layer.oscillators.push(osc);
+      osc.onended = () => {
+        osc.disconnect(); osc.onended = null;
+        layer.oscillators.splice(layer.oscillators.indexOf(osc), 1);
+        if (layer.oscillators.length === 0) {
+          gain.disconnect(); voice.pipes.delete(layer); disposeOrganVoice(voice);
+        }
+      };
+      osc.start(now);
+    });
+    if (layer.oscillators.length === 0) { gain.disconnect(); voice.pipes.delete(layer); }
+  }
+
+  function syncOrganStops() {
+    organNotes.forEach(voice => {
+      voice.layers.forEach((layer, id) => {
+        if (!enabledStops.has(id)) { releaseOrganLayer(voice, layer); voice.layers.delete(id); }
+      });
+      ORGAN_STOPS.forEach(stop => {
+        if (stop.division === voice.division && enabledStops.has(stop.id) && !voice.layers.has(stop.id)) addOrganLayer(voice, stop);
+      });
+    });
+    document.querySelectorAll('.organ-stop').forEach(button => button.setAttribute('aria-pressed', String(enabledStops.has(button.dataset.stop))));
+  }
+
+  function releaseOrganNote(midi, fast = false) {
+    const voice = organNotes.get(midi);
+    if (!voice) return;
+    voice.released = true;
+    voice.pipes.forEach(layer => releaseOrganLayer(voice, layer, fast));
+    voice.layers.clear(); organNotes.delete(midi); sustainedNotes.delete(midi);
+    if (keyElements[midi]) keyElements[midi].el.classList.remove('held');
+    disposeOrganVoice(voice); updateChord();
+  }
+
+  function playOrganNote(midi) {
+    if (midi < 21 || midi > 108) return;
+    releaseOrganNote(midi, true);
+    const engine = ensureOrganAudio();
+    const gainNode = audioCtx.createGain(); gainNode.connect(engine.input);
+    const division = midi <= 48 ? 'pedal' : 'manual';
+    const voice = { midi, pitch: division === 'manual' ? midi - 12 : midi, division, gainNode, layers: new Map(), pipes: new Set(), released: false };
+    organNotes.set(midi, voice);
+    ORGAN_STOPS.forEach(stop => {
+      if (stop.division === division && enabledStops.has(stop.id)) addOrganLayer(voice, stop);
+    });
+    updateChord();
+  }
+
+  function releasePianoVoice(noteObj, immediate = false) {
+    const now = audioCtx.currentTime;
+    clearTimeout(noteObj.decayTimeout);
+    noteObj.gainNode.gain.cancelScheduledValues(now);
+    noteObj.gainNode.gain.setTargetAtTime(0, now, immediate ? .005 : .05);
+    // Keep a reference to this voice: a retrigger must not cancel its replacement.
+    setTimeout(() => {
+      noteObj.envelope.cancel();
+      setTimeout(() => noteObj.gainNode.disconnect(), 500);
+    }, immediate ? 30 : 200);
+  }
+
+  function allNotesOff() {
+    Object.values(activeNotes).forEach(noteObj => releasePianoVoice(noteObj, true));
+    Object.keys(activeNotes).forEach(midi => delete activeNotes[midi]);
+    [...organNotes.keys()].forEach(midi => releaseOrganNote(midi, true));
+    sustainedNotes.clear(); heldSources.clear();
+    document.querySelectorAll('#piano .active, #piano .held, #flow-piano .active').forEach(key => key.classList.remove('active', 'held'));
+    if (typeof onFlowAllNotesOff === 'function') onFlowAllNotesOff();
+    updateChord();
+  }
+
+  function playNote(midi, velocity = 100, source = 'local') {
+    ensureAudio();
+    let sources = heldSources.get(midi);
+    if (!sources) { sources = new Set(); heldSources.set(midi, sources); }
+    const alreadyHeld = sources.size > 0;
+    sources.add(source);
+    if (keyElements[midi]) keyElements[midi].el.classList.add('active');
+    if (typeof flowKeyElements !== 'undefined' && flowKeyElements[midi]) flowKeyElements[midi].classList.add('active');
+    if (typeof onFlowNotePlayed === 'function') onFlowNotePlayed(midi, velocity, source);
+    if (alreadyHeld) return;
+    if (currentMode === 'organ') { playOrganNote(midi); return; }
     if (!currentTone) return;
 
     if (activeNotes[midi]) {
-      if (activeNotes[midi].gainNode) {
-        activeNotes[midi].gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-        activeNotes[midi].gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        const oldGain = activeNotes[midi].gainNode;
-        setTimeout(() => { try { oldGain.disconnect(); } catch(e){} }, 500);
-      }
-      activeNotes[midi].envelope.cancel();
-      clearTimeout(activeNotes[midi].decayTimeout);
+      releasePianoVoice(activeNotes[midi], true);
       delete activeNotes[midi];
     }
     sustainedNotes.delete(midi);
@@ -1157,20 +1820,29 @@
     }
   }
 
-  function stopNote(midi) {
+  function stopNote(midi, source = 'local') {
+    const sources = heldSources.get(midi);
+    if (!sources || !sources.delete(source)) return;
+    if (sources.size) return;
+    heldSources.delete(midi);
+    if (keyElements[midi]) keyElements[midi].el.classList.remove('active');
+    if (typeof flowKeyElements !== 'undefined' && flowKeyElements[midi]) flowKeyElements[midi].classList.remove('active');
+    if (typeof onFlowNoteStopped === 'function') onFlowNoteStopped(midi, source);
+    if (currentMode === 'organ') {
+      const voice = organNotes.get(midi);
+      if (voice && voice.division === 'pedal' && sustainValue >= 64) {
+        sustainedNotes.add(midi);
+        if (keyElements[midi]) keyElements[midi].el.classList.add('held');
+      } else releaseOrganNote(midi);
+      return;
+    }
     const noteObj = activeNotes[midi];
     if (noteObj) {
       if (sustainValue > 10) {
         sustainedNotes.add(midi);
         applyDampening(noteObj);
       } else {
-        noteObj.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-        noteObj.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-        clearTimeout(noteObj.decayTimeout);
-        setTimeout(() => { 
-          if (activeNotes[midi] === noteObj) noteObj.envelope.cancel();
-          setTimeout(() => { try { noteObj.gainNode.disconnect(); } catch(e){} }, 500);
-        }, 200);
+        releasePianoVoice(noteObj);
         delete activeNotes[midi];
         updateChord();
       }
@@ -1210,7 +1882,9 @@
   const chordDisplay = document.getElementById('chord-display');
 
   function updateChord() {
-    const active = Object.keys(activeNotes).map(Number).sort((a,b) => a - b);
+    const active = (currentMode === 'organ'
+      ? [...organNotes.values()].map(voice => voice.pitch)
+      : Object.keys(activeNotes).map(Number)).sort((a,b) => a - b);
     if (active.length === 0) {
       chordDisplay.textContent = "";
       return;
@@ -1269,8 +1943,9 @@
       target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
     }
     if (mobileInstSelect) mobileInstSelect.value = program;
-    Object.keys(activeNotes).forEach(m => stopNote(Number(m)));
+    allNotesOff();
     loadInstrument(program);
+    if (typeof syncFlowSoundPicker === 'function') syncFlowSoundPicker();
   }
 
   function populateInstruments(catIndex) {
@@ -1334,7 +2009,6 @@
 
   const piano = document.getElementById('piano');
   let keyElements = {};
-  const whiteWidth = 23;
 
   let octaveOffset = 0;
   function renderPiano(numKeys) {
@@ -1349,7 +2023,8 @@
 
     if (window.innerWidth <= 850) {
       startMidi = Math.max(21, Math.min(84, 48 + (octaveOffset * 12)));
-      endMidi = Math.min(108, startMidi + 24);
+      const visibleSpan = currentMode === 'organ' && window.innerWidth < 600 ? 12 : 24;
+      endMidi = Math.min(108, startMidi + visibleSpan);
     }
 
     let whiteIndex = 0;
@@ -1364,6 +2039,17 @@
       whiteIndex++;
     }
 
+    if (currentMode === 'organ' || window.innerWidth <= 850) {
+      const wrapperWidth = document.getElementById('piano-wrapper').clientWidth;
+      const available = currentMode === 'organ' ? wrapperWidth - (window.innerWidth <= 850 ? 52 : 8) : window.innerWidth - 100;
+      const width = Math.min(window.innerWidth <= 850 ? 32 : 23, Math.max(8, available / whiteIndex));
+      piano.style.setProperty('--white-key-width', `${width}px`);
+      piano.style.setProperty('--black-key-width', `${width * .62}px`);
+    } else {
+      piano.style.removeProperty('--white-key-width');
+      piano.style.removeProperty('--black-key-width');
+    }
+
     for (let midi = startMidi; midi <= endMidi; midi++) {
       if (!isBlack(midi)) continue;
       const prevWhite = keyElements[midi - 1];
@@ -1371,10 +2057,17 @@
       const el = document.createElement('div');
       el.className = 'key-black';
       el.dataset.midi = midi;
-      el.style.left = `calc(4px + ${(prevWhite.whitePos + 1)} * var(--white-key-width) - calc(var(--black-key-width) / 2))`;
+      el.style.left = `calc(4px + ${(prevWhite.whitePos + 1)} * var(--white-key-width) - var(--black-key-width) / 2)`;
       piano.appendChild(el);
       keyElements[midi] = { el };
     }
+    Object.entries(keyElements).forEach(([midi, entry]) => {
+      entry.el.classList.toggle('active', heldSources.has(Number(midi)));
+      entry.el.classList.toggle('held', currentMode === 'organ' && sustainedNotes.has(Number(midi)));
+      entry.el.classList.toggle('pedal-key', Number(midi) <= 48);
+      entry.el.title = `${NOTES[Number(midi) % 12]}${Math.floor(Number(midi) / 12) - 1}` +
+        (currentMode === 'organ' ? (Number(midi) <= 48 ? ' · Pedal' : ' · Manual (−1 octave)') : '');
+    });
   }
 
   renderPiano(88);
@@ -1509,17 +2202,19 @@
       sustainBtn.classList.remove('active');
     }
 
+    if (currentMode === 'organ') {
+      if (val < 64) {
+        [...sustainedNotes].forEach(midi => releaseOrganNote(midi, true));
+        sustainedNotes.clear();
+      }
+      return;
+    }
+
     sustainedNotes.forEach(midi => {
       const noteObj = activeNotes[midi];
       if (noteObj) {
         if (val <= 10) {
-          noteObj.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-          noteObj.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-          clearTimeout(noteObj.decayTimeout);
-          setTimeout(() => { 
-            if (activeNotes[midi] === noteObj) noteObj.envelope.cancel(); 
-            setTimeout(() => { try { noteObj.gainNode.disconnect(); } catch(e){} }, 500);
-          }, 200);
+          releasePianoVoice(noteObj);
           delete activeNotes[midi];
           sustainedNotes.delete(midi);
         } else {
@@ -1543,6 +2238,7 @@
 
   masterVolumeSlider.addEventListener('input', (e) => {
     masterVolume = Number(e.target.value);
+    if (organAudio) organAudio.master.gain.setTargetAtTime(masterVolume, audioCtx.currentTime, .015);
   });
 
   // Metronome Logic
@@ -1764,41 +2460,7 @@
     exitResizeMode();
   });
 
-  // ── Mouse / touch ──────────────────────────────────
-  let pointerDown = false;
-
-  function handleDown(e) {
-    const midi = Number(e.target.dataset.midi);
-    if (!midi) return;
-    e.preventDefault();
-    pointerDown = true;
-    e.target.classList.add('active');
-    playNote(midi);
-  }
-
-  function handleUp(e) {
-    const midi = Number(e.target.dataset.midi);
-    if (!midi) return;
-    pointerDown = false;
-    e.target.classList.remove('active');
-    stopNote(midi);
-  }
-
-  function handleEnter(e) {
-    if (!pointerDown) return;
-    const midi = Number(e.target.dataset.midi);
-    if (!midi) return;
-    e.target.classList.add('active');
-    playNote(midi);
-  }
-
-  function handleLeave(e) {
-    const midi = Number(e.target.dataset.midi);
-    if (!midi) return;
-    e.target.classList.remove('active');
-    stopNote(midi);
-  }
-
+  // ── Mouse / touch: track every pointer, including glissando and cancellation.
   let audioUnlocked = false;
   function unlockAudio() {
     if (audioUnlocked) return;
@@ -1813,66 +2475,47 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(0);
-      osc.stop(0.01);
+      osc.stop(audioCtx.currentTime + 0.01);
+      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
     } catch(e) {}
     audioUnlocked = true;
   }
 
-  piano.addEventListener('mousedown', (e) => {
-    unlockAudio();
-    handleDown(e);
-  });
-  piano.addEventListener('mouseup', handleUp);
-  piano.addEventListener('mouseover', handleEnter);
-  piano.addEventListener('mouseout', handleLeave);
-  document.addEventListener('mouseup', () => { pointerDown = false; });
-
-  const activeTouches = {};
-  piano.addEventListener('touchstart', (e) => {
+  const activePointers = new Map();
+  piano.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
     unlockAudio();
     onFirstInteraction();
     e.preventDefault();
-    for (const t of e.changedTouches) {
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      if (el) {
-        activeTouches[t.identifier] = el;
-        handleDown({ target: el, preventDefault: () => {} });
-      }
-    }
-  }, { passive: false });
-
-  piano.addEventListener('touchmove', (e) => {
+    piano.setPointerCapture(e.pointerId);
+    activePointers.set(e.pointerId, midi);
+    playNote(midi, 100, `pointer:${e.pointerId}`);
+  });
+  piano.addEventListener('pointermove', e => {
+    if (!activePointers.has(e.pointerId)) return;
     e.preventDefault();
-    for (const t of e.changedTouches) {
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const prevEl = activeTouches[t.identifier];
-      if (el && el !== prevEl) {
-        if (prevEl) handleUp({ target: prevEl, preventDefault: () => {} });
-        activeTouches[t.identifier] = el;
-        handleDown({ target: el, preventDefault: () => {} });
-      }
-    }
-  }, { passive: false });
-
-  piano.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    for (const t of e.changedTouches) {
-      const prevEl = activeTouches[t.identifier];
-      if (prevEl) {
-        handleUp({ target: prevEl, preventDefault: () => {} });
-        delete activeTouches[t.identifier];
-      }
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const midi = el && piano.contains(el) ? Number(el.dataset.midi) || null : null;
+    const previous = activePointers.get(e.pointerId);
+    if (midi !== previous) {
+      if (previous) stopNote(previous, `pointer:${e.pointerId}`);
+      activePointers.set(e.pointerId, midi);
+      if (midi) playNote(midi, 100, `pointer:${e.pointerId}`);
     }
   });
-
-  piano.addEventListener('touchcancel', (e) => {
-    for (const t of e.changedTouches) {
-      const prevEl = activeTouches[t.identifier];
-      if (prevEl) {
-        handleUp({ target: prevEl, preventDefault: () => {} });
-        delete activeTouches[t.identifier];
-      }
-    }
+  function endPointer(e) {
+    const midi = activePointers.get(e.pointerId);
+    if (midi) stopNote(midi, `pointer:${e.pointerId}`);
+    activePointers.delete(e.pointerId);
+  }
+  piano.addEventListener('pointerup', endPointer);
+  piano.addEventListener('pointercancel', endPointer);
+  piano.addEventListener('lostpointercapture', endPointer);
+  window.addEventListener('blur', () => { activePointers.clear(); allNotesOff(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { activePointers.clear(); allNotesOff(); }
   });
 
   // ── MIDI input ─────────────────────────────────────
@@ -1883,15 +2526,15 @@
     onFirstInteraction(); // Ensure audio unlocks on MIDI play
     const [status, note, velocity] = e.data;
     const cmd = status & 0xf0;
+    const source = `midi:${e.target?.id || 'input'}:${status & 0x0f}`;
 
     if (cmd === 0x90 && velocity > 0) {
-      const entry = keyElements[note];
-      if (entry) entry.el.classList.add('active');
-      playNote(note, velocity);
+      playNote(note, velocity, source);
     } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
-      const entry = keyElements[note];
-      if (entry) entry.el.classList.remove('active');
-      stopNote(note);
+      stopNote(note, source);
+    } else if (cmd === 0xB0 && (note === 120 || note === 123)) {
+      allNotesOff();
+      setSustain(0);
     } else if (cmd === 0xB0 && note === 64) {
       if (!showSustainUi) {
         showSustainUi = true;
@@ -1943,7 +2586,10 @@
   if (navigator.requestMIDIAccess) {
     navigator.requestMIDIAccess().then((access) => {
       connectInputs(access);
-      access.onstatechange = () => connectInputs(access);
+      access.onstatechange = event => {
+        if (event.port.type === 'input' && event.port.state === 'disconnected') allNotesOff();
+        connectInputs(access);
+      };
     }).catch(() => {
       statusEl.className = 'error';
       statusText.textContent = 'MIDI access denied';
@@ -1958,6 +2604,629 @@
   }
 
   // ── Load default instrument on first interaction ───
+  ORGAN_STOPS.forEach(stop => {
+    const button = document.createElement('button');
+    button.className = 'organ-stop'; button.dataset.stop = stop.id;
+    button.setAttribute('aria-pressed', String(enabledStops.has(stop.id)));
+    button.setAttribute('aria-label', `${stop.division} ${stop.name} ${stop.pitch}`);
+    button.title = `${stop.division === 'pedal' ? 'Pedal' : 'Manual'} · ${stop.name} ${stop.pitch}`;
+    const name = document.createElement('span'); name.textContent = stop.name;
+    button.append(name);
+    button.addEventListener('click', () => {
+      if (enabledStops.has(stop.id)) enabledStops.delete(stop.id);
+      else enabledStops.add(stop.id);
+      syncOrganStops();
+    });
+    document.getElementById(`${stop.division}-stops`).appendChild(button);
+  });
+  syncOrganStops();
+
+  function setMode(mode) {
+    if (mode === currentMode) return;
+    const held = [...heldSources].map(([midi, sources]) => [midi, [...sources]]);
+    allNotesOff();
+    currentMode = mode;
+    const organ = mode === 'organ';
+    document.body.classList.toggle('organ-mode', organ);
+    document.querySelector('header h1').textContent = organ ? 'Skalekorgan' : 'Skalekiano';
+    document.title = organ ? 'Skalekorgan' : 'Skalekiano';
+    document.getElementById('controls').hidden = organ;
+    document.getElementById('pedal-stops').hidden = !organ;
+    document.getElementById('manual-stops').hidden = !organ;
+    document.querySelectorAll('.mode-button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+    sustainBtn.setAttribute('title', organ ? 'Bass hold — Pedal division only' : 'Sustain Pedal');
+    sustainUiSlider.setAttribute('aria-label', organ ? 'Pedal bass hold' : 'Sustain pedal');
+    themeToggle.disabled = organ;
+    if (organ) { themeToggle.textContent = 'Gentleman Brown'; ensureOrganAudio(); }
+    else { updateThemeUI(); if (!currentTone) loadInstrument(currentProgram); }
+    renderPiano(Number(keysShownSelect.value));
+    held.forEach(([midi, sources]) => sources.forEach(source => playNote(midi, 100, source)));
+    updateChord();
+  }
+  document.querySelectorAll('.mode-button').forEach(button => {
+    button.addEventListener('click', () => setMode(button.dataset.mode));
+  });
+
+  // ── Waterfall / Flow Visualizer Mode ────────────────
+  const flowView = document.getElementById('flow-view');
+  const flowCanvas = document.getElementById('flow-canvas');
+  const flowCanvasWrap = document.getElementById('flow-canvas-wrap');
+  const flowCtx = flowCanvas.getContext('2d');
+  const flowPiano = document.getElementById('flow-piano');
+  const flowBackBtn = document.getElementById('flow-back-btn');
+  const flowCatSelect = document.getElementById('flow-cat-select');
+  const flowInstSelect = document.getElementById('flow-inst-select');
+  const flowRecordBtn = document.getElementById('flow-record-btn');
+  const flowPlayBtn = document.getElementById('flow-play-btn');
+  const flowRecordText = document.getElementById('flow-record-text');
+  const flowPlayText = document.getElementById('flow-play-text');
+  const flowReverseToggle = document.getElementById('flow-reverse-toggle');
+  const flowDirectionText = document.getElementById('flow-direction-text');
+  const flowModeBtn = document.getElementById('flow-mode-btn');
+
+  let flowWhiteKeyPositions = [];
+
+  // Note colors (pitch class 0-11: C to B)
+  const FLOW_NOTE_COLORS = [
+    '#e07a5f', // 0: C  - Terracotta
+    '#d96442', // 1: C# - Rust
+    '#e79a58', // 2: D  - Warm Amber
+    '#d98236', // 3: D# - Deep Amber
+    '#e9c46a', // 4: E  - Gold
+    '#8ab17d', // 5: F  - Sage Green
+    '#689a57', // 6: F# - Forest Green
+    '#2a9d8f', // 7: G  - Teal
+    '#1f7e73', // 8: G# - Deep Teal
+    '#457b9d', // 9: A  - Steel Blue
+    '#316585', // 10: A# - Slate Blue
+    '#8e7dbe'  // 11: B - Lavender
+  ];
+
+  function getFlowNoteColor(midi) {
+    return FLOW_NOTE_COLORS[midi % 12];
+  }
+
+  // Recording & Playback state
+  let isRecording = false;
+  let recordStartTime = 0;
+  let recordedEvents = [];
+  let activeRecordEvents = new Map();
+  let recordedDuration = 0;
+  let recordTimerInterval = null;
+
+  let isPlaying = false;
+  let playbackStartTime = 0;
+  let playbackReverse = false;
+  let activePlaybackList = [];
+  let animationFrameId = null;
+
+  const FLOAT_SPEED = 230; // px / second
+  const FALL_SPEED = 230;  // px / second
+
+  onFlowNotePlayed = function(midi, velocity, source) {
+    if (isFlowActive && source !== 'playback') {
+      startFloatingNote(midi);
+    }
+    if (isRecording && source !== 'playback') {
+      const startT = (performance.now() - recordStartTime) / 1000;
+      const ev = { midi, velocity, startTime: startT, endTime: null, duration: 0.2 };
+      activeRecordEvents.set(midi, ev);
+      recordedEvents.push(ev);
+    }
+  };
+
+  onFlowNoteStopped = function(midi, source) {
+    if (isFlowActive && source !== 'playback') {
+      stopFloatingNote(midi);
+    }
+    if (isRecording && source !== 'playback') {
+      const ev = activeRecordEvents.get(midi);
+      if (ev) {
+        ev.endTime = (performance.now() - recordStartTime) / 1000;
+        ev.duration = Math.max(0.08, ev.endTime - ev.startTime);
+        activeRecordEvents.delete(midi);
+      }
+    }
+  };
+
+  onFlowAllNotesOff = function() {
+    activeFloatingNotes.forEach(note => { note.active = false; });
+    activeFloatingNotes.clear();
+  };
+
+  let flowKeyRects = {};
+
+  function updateFlowKeyRects() {
+    flowKeyRects = {};
+    Object.keys(flowKeyElements).forEach(midi => {
+      const el = flowKeyElements[midi];
+      if (el) {
+        const r = el.getBoundingClientRect();
+        flowKeyRects[midi] = { left: r.left, width: r.width };
+      }
+    });
+  }
+
+  function startFloatingNote(midi) {
+    const key = flowKeyElements[midi];
+    if (!key) return;
+    const rect = flowKeyRects[midi] || key.getBoundingClientRect();
+    const cHeight = flowCanvasWrap.clientHeight;
+
+    if (activeFloatingNotes.has(midi)) {
+      stopFloatingNote(midi);
+    }
+
+    const note = {
+      midi,
+      x: rect.left,
+      w: rect.width,
+      isBlack: isBlack(midi),
+      color: getFlowNoteColor(midi),
+      bottomY: cHeight,
+      topY: cHeight,
+      active: true
+    };
+    activeFloatingNotes.set(midi, note);
+    allFloatingNotes.push(note);
+  }
+
+  function stopFloatingNote(midi) {
+    const note = activeFloatingNotes.get(midi);
+    if (note) {
+      note.active = false;
+      activeFloatingNotes.delete(midi);
+    }
+  }
+
+  function renderFlowPiano() {
+    flowPiano.innerHTML = '';
+    flowKeyElements = {};
+    flowWhiteKeyPositions = [];
+
+    let startMidi = 21;
+    let endMidi = 108;
+    if (window.innerWidth < 650 && window.matchMedia("(orientation: portrait)").matches) {
+      startMidi = 36; // C2
+      endMidi = 96;   // C7 (61 keys - 36 white keys, comfortable on phones)
+    }
+
+    const whiteNotes = [];
+    for (let m = startMidi; m <= endMidi; m++) {
+      if (!isBlack(m)) whiteNotes.push(m);
+    }
+    const totalWhite = whiteNotes.length;
+
+    // Render white keys
+    for (let i = 0; i < totalWhite; i++) {
+      const midi = whiteNotes[i];
+      const key = document.createElement('div');
+      key.className = 'flow-key flow-key-white';
+      key.dataset.midi = midi;
+      key.style.left = (i * 100 / totalWhite) + '%';
+      key.style.width = (100 / totalWhite) + '%';
+      flowPiano.appendChild(key);
+      flowKeyElements[midi] = key;
+      key._whiteIndex = i;
+    }
+
+    // Render black keys
+    const blackWidthPct = (100 / totalWhite) * 0.62;
+    for (let m = startMidi; m <= endMidi; m++) {
+      if (!isBlack(m)) continue;
+      const prevWhite = flowKeyElements[m - 1];
+      if (!prevWhite) continue;
+      const key = document.createElement('div');
+      key.className = 'flow-key flow-key-black';
+      key.dataset.midi = m;
+      const boundaryPct = ((prevWhite._whiteIndex + 1) * 100) / totalWhite;
+      key.style.left = (boundaryPct - blackWidthPct / 2) + '%';
+      key.style.width = blackWidthPct + '%';
+      flowPiano.appendChild(key);
+      flowKeyElements[m] = key;
+    }
+
+    requestAnimationFrame(() => {
+      updateFlowKeyRects();
+      flowWhiteKeyPositions = [];
+      const rect = flowPiano.getBoundingClientRect();
+      for (let i = 0; i <= totalWhite; i++) {
+        flowWhiteKeyPositions.push(Math.round((i * rect.width) / totalWhite));
+      }
+    });
+  }
+
+  // Pointer interaction on flow piano (mouse, touch & glissando)
+  const flowActivePointers = new Map();
+  flowPiano.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const midi = Number(e.target.dataset.midi);
+    if (!midi) return;
+    unlockAudio();
+    onFirstInteraction();
+    e.preventDefault();
+    flowPiano.setPointerCapture(e.pointerId);
+    flowActivePointers.set(e.pointerId, midi);
+    playNote(midi, 100, `flow-pointer:${e.pointerId}`);
+  });
+
+  flowPiano.addEventListener('pointermove', e => {
+    if (!flowActivePointers.has(e.pointerId)) return;
+    e.preventDefault();
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const midi = el && flowPiano.contains(el) ? Number(el.dataset.midi) || null : null;
+    const prev = flowActivePointers.get(e.pointerId);
+    if (midi !== prev) {
+      if (prev) stopNote(prev, `flow-pointer:${e.pointerId}`);
+      flowActivePointers.set(e.pointerId, midi);
+      if (midi) playNote(midi, 100, `flow-pointer:${e.pointerId}`);
+    }
+  });
+
+  function endFlowPointer(e) {
+    const midi = flowActivePointers.get(e.pointerId);
+    if (midi) stopNote(midi, `flow-pointer:${e.pointerId}`);
+    flowActivePointers.delete(e.pointerId);
+  }
+  flowPiano.addEventListener('pointerup', endFlowPointer);
+  flowPiano.addEventListener('pointercancel', endFlowPointer);
+  flowPiano.addEventListener('lostpointercapture', endFlowPointer);
+
+  // Sound picker options
+  GM_CATEGORIES.forEach((cat, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = cat.name;
+    flowCatSelect.appendChild(opt);
+  });
+
+  function updateFlowInstrumentOptions(catIdx, selectedProgram = null) {
+    const cat = GM_CATEGORIES[catIdx];
+    flowInstSelect.innerHTML = '';
+    for (let p = cat.from; p <= cat.to; p++) {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = GM_NAMES[p];
+      flowInstSelect.appendChild(opt);
+    }
+    if (selectedProgram !== null && selectedProgram >= cat.from && selectedProgram <= cat.to) {
+      flowInstSelect.value = selectedProgram;
+    } else {
+      flowInstSelect.value = cat.from;
+    }
+  }
+
+  flowCatSelect.addEventListener('change', e => {
+    const catIdx = Number(e.target.value);
+    updateFlowInstrumentOptions(catIdx);
+    const prog = Number(flowInstSelect.value);
+    selectCategory(catIdx);
+    selectInstrument(prog);
+  });
+
+  flowInstSelect.addEventListener('change', e => {
+    const prog = Number(e.target.value);
+    selectInstrument(prog);
+  });
+
+  syncFlowSoundPicker = function() {
+    if (!flowCatSelect || !flowInstSelect) return;
+    let catIdx = 0;
+    for (let i = 0; i < GM_CATEGORIES.length; i++) {
+      if (currentProgram >= GM_CATEGORIES[i].from && currentProgram <= GM_CATEGORIES[i].to) {
+        catIdx = i;
+        break;
+      }
+    }
+    flowCatSelect.value = catIdx;
+    updateFlowInstrumentOptions(catIdx, currentProgram);
+  }
+
+  // Recording logic
+  flowRecordBtn.addEventListener('click', () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  });
+
+  function startRecording() {
+    if (isPlaying) stopPlayback();
+    isRecording = true;
+    recordedEvents = [];
+    activeRecordEvents.clear();
+    recordStartTime = performance.now();
+    flowRecordBtn.classList.add('recording');
+    flowRecordText.textContent = 'Stop (0:00)';
+    flowPlayBtn.disabled = true;
+
+    if (recordTimerInterval) clearInterval(recordTimerInterval);
+    recordTimerInterval = setInterval(() => {
+      const sec = Math.floor((performance.now() - recordStartTime) / 1000);
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2, '0');
+      flowRecordText.textContent = `Stop (${m}:${s})`;
+    }, 500);
+  }
+
+  function stopRecording() {
+    if (!isRecording) return;
+    isRecording = false;
+    clearInterval(recordTimerInterval);
+    const now = performance.now();
+    recordedDuration = (now - recordStartTime) / 1000;
+    flowRecordBtn.classList.remove('recording');
+    flowRecordText.textContent = 'Record';
+
+    activeRecordEvents.forEach((ev) => {
+      ev.endTime = recordedDuration;
+      ev.duration = Math.max(0.08, ev.endTime - ev.startTime);
+    });
+    activeRecordEvents.clear();
+
+    if (recordedEvents.length > 0) {
+      flowPlayBtn.disabled = false;
+    }
+  }
+
+  // Playback logic (Falling Notes)
+  flowPlayBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      startPlayback();
+    }
+  });
+
+  flowReverseToggle.addEventListener('click', () => {
+    playbackReverse = !playbackReverse;
+    flowDirectionText.textContent = playbackReverse ? 'Reverse' : 'Falling';
+    flowReverseToggle.classList.toggle('active', playbackReverse);
+  });
+
+  function startPlayback() {
+    if (recordedEvents.length === 0) return;
+    if (isRecording) stopRecording();
+    allNotesOff();
+
+    isPlaying = true;
+    playbackStartTime = performance.now();
+    flowPlayBtn.classList.add('playing');
+    flowPlayText.textContent = 'Stop';
+    flowRecordBtn.disabled = true;
+
+    if (playbackReverse) {
+      const maxT = recordedDuration;
+      activePlaybackList = recordedEvents.map(ev => ({
+        midi: ev.midi,
+        velocity: ev.velocity,
+        playbackStartTime: Math.max(0, maxT - (ev.endTime || (ev.startTime + ev.duration))),
+        duration: ev.duration,
+        hasStarted: false,
+        hasFinished: false
+      }));
+    } else {
+      activePlaybackList = recordedEvents.map(ev => ({
+        midi: ev.midi,
+        velocity: ev.velocity,
+        playbackStartTime: ev.startTime,
+        duration: ev.duration,
+        hasStarted: false,
+        hasFinished: false
+      }));
+    }
+  }
+
+  function stopPlayback() {
+    isPlaying = false;
+    flowPlayBtn.classList.remove('playing');
+    flowPlayText.textContent = 'Play';
+    flowRecordBtn.disabled = false;
+    allNotesOff();
+    activePlaybackList = [];
+  }
+
+  function drawNoteBar(ctx, x, y, width, height, color, isStriking, canvasHeight) {
+    ctx.save();
+    const radius = Math.min(4, width / 2, height / 2);
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, width, height, radius);
+    } else {
+      ctx.rect(x, y, width, height);
+    }
+
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+
+    if (isStriking) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 1, canvasHeight - 3, Math.max(1, width - 2), 3);
+
+      const glowGrad = ctx.createLinearGradient(0, canvasHeight - 16, 0, canvasHeight);
+      glowGrad.addColorStop(0, 'rgba(255,255,255,0)');
+      glowGrad.addColorStop(1, color);
+      ctx.fillStyle = glowGrad;
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(x - 2, canvasHeight - 16, width + 4, 16);
+    }
+    ctx.restore();
+  }
+
+  let lastFrameTime = performance.now();
+
+  function drawFlowLoop(now) {
+    animationFrameId = requestAnimationFrame(drawFlowLoop);
+    const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
+    lastFrameTime = now;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = flowCanvasWrap.clientWidth;
+    const h = flowCanvasWrap.clientHeight;
+    if (flowCanvas.width !== w * dpr || flowCanvas.height !== h * dpr) {
+      flowCanvas.width = w * dpr;
+      flowCanvas.height = h * dpr;
+    }
+
+    flowCtx.save();
+    flowCtx.scale(dpr, dpr);
+    flowCtx.clearRect(0, 0, w, h);
+
+    // Vertical guides
+    flowCtx.strokeStyle = isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.04)';
+    flowCtx.lineWidth = 1;
+    for (let i = 0; i < flowWhiteKeyPositions.length; i++) {
+      const gx = flowWhiteKeyPositions[i];
+      flowCtx.beginPath();
+      flowCtx.moveTo(gx, 0);
+      flowCtx.lineTo(gx, h);
+      flowCtx.stroke();
+    }
+
+    // 1. Falling Notes (playback)
+    if (isPlaying) {
+      const playT = (now - playbackStartTime) / 1000;
+      const leadTime = h / FALL_SPEED;
+      let anyActive = false;
+
+      for (let i = 0; i < activePlaybackList.length; i++) {
+        const ev = activePlaybackList[i];
+        const strikeT = ev.playbackStartTime + leadTime;
+        const releaseT = strikeT + ev.duration;
+
+        const bottomY = h - (strikeT - playT) * FALL_SPEED;
+        const barH = Math.max(4, ev.duration * FALL_SPEED);
+        const topY = bottomY - barH;
+
+        if (bottomY >= 0 && topY <= h) {
+          const rect = flowKeyRects[ev.midi];
+          const kx = rect ? rect.left : (flowKeyElements[ev.midi]?.getBoundingClientRect().left || 0);
+          const kw = rect ? rect.width : (flowKeyElements[ev.midi]?.getBoundingClientRect().width || 20);
+
+          const isStriking = (playT >= strikeT && playT < releaseT);
+          drawNoteBar(flowCtx, kx + 1, topY, Math.max(2, kw - 2), barH, getFlowNoteColor(ev.midi), isStriking, h);
+        }
+
+        if (playT >= strikeT && !ev.hasStarted) {
+          ev.hasStarted = true;
+          playNote(ev.midi, ev.velocity || 100, 'playback');
+        }
+        if (playT >= releaseT && !ev.hasFinished) {
+          ev.hasFinished = true;
+          stopNote(ev.midi, 'playback');
+        }
+
+        if (!ev.hasFinished) anyActive = true;
+      }
+
+      if (!anyActive && playT > leadTime + 0.5) {
+        stopPlayback();
+      }
+    }
+
+    // 2. Floating Notes (live play)
+    const aliveFloating = [];
+    for (let i = 0; i < allFloatingNotes.length; i++) {
+      const note = allFloatingNotes[i];
+      note.topY -= FLOAT_SPEED * dt;
+      if (note.active) {
+        note.bottomY = h;
+      } else {
+        note.bottomY -= FLOAT_SPEED * dt;
+      }
+
+      if (note.bottomY < -10) continue;
+      aliveFloating.push(note);
+
+      const barH = Math.max(3, note.bottomY - note.topY);
+      drawNoteBar(flowCtx, note.x + 1, note.topY, Math.max(2, note.w - 2), barH, note.color, note.active, h);
+    }
+    allFloatingNotes = aliveFloating;
+
+    flowCtx.restore();
+  }
+
+  function enterFlowMode() {
+    if (isFlowActive) return;
+    isFlowActive = true;
+    unlockAudio();
+    onFirstInteraction();
+    allNotesOff();
+
+    document.body.classList.add('flow-active');
+    flowView.classList.remove('hidden');
+
+    syncFlowSoundPicker();
+    renderFlowPiano();
+
+    lastFrameTime = performance.now();
+    if (!animationFrameId) {
+      animationFrameId = requestAnimationFrame(drawFlowLoop);
+    }
+    if (window.location.hash !== '#visualizer') {
+      history.pushState(null, '', '#visualizer');
+    }
+  }
+
+  function exitFlowMode() {
+    if (!isFlowActive) return;
+    if (isRecording) stopRecording();
+    if (isPlaying) stopPlayback();
+    allNotesOff();
+
+    isFlowActive = false;
+    document.body.classList.remove('flow-active');
+    flowView.classList.add('hidden');
+
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    if (window.location.hash === '#visualizer' || window.location.hash === '#flow') {
+      history.pushState(null, '', window.location.pathname);
+    }
+    renderPiano(Number(keysShownSelect.value));
+  }
+
+  flowModeBtn.addEventListener('click', enterFlowMode);
+  flowBackBtn.addEventListener('click', exitFlowMode);
+
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#visualizer' || window.location.hash === '#flow') {
+      enterFlowMode();
+    } else if (isFlowActive) {
+      exitFlowMode();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (isFlowActive) {
+      renderFlowPiano();
+      setTimeout(updateFlowKeyRects, 50);
+    }
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isFlowActive) {
+      exitFlowMode();
+    }
+  });
+
+  if (window.location.hash === '#visualizer' || window.location.hash === '#flow') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', enterFlowMode);
+    } else {
+      enterFlowMode();
+    }
+  }
+
   const startOverlay = document.getElementById('start-overlay');
   let firstInteraction = false;
   function onFirstInteraction() {
@@ -1967,7 +3236,8 @@
       startOverlay.style.opacity = '0';
       setTimeout(() => startOverlay.remove(), 500);
     }
-    loadInstrument(0);
+    ensureAudio();
+    if (currentMode === 'piano') loadInstrument(currentProgram);
     document.removeEventListener('mousedown', onFirstInteraction);
     document.removeEventListener('touchstart', onFirstInteraction);
     document.removeEventListener('keydown', onFirstInteraction);
@@ -1981,7 +3251,7 @@
     if (audioCtx.state === 'running') {
       firstInteraction = true;
       if (startOverlay) startOverlay.remove();
-      loadInstrument(0);
+      loadInstrument(currentProgram);
     }
   } catch(e) {}
 })();
